@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        primary: "#2b7cee",
+        "background-light": "#f6f7f8",
+        "background-dark": "#101822",
+      },
+      fontFamily: {
+        display: ["Lexend"]
+      },
+      borderRadius: {
+        DEFAULT: "0.25rem",
+        lg: "0.5rem",
+        xl: "0.75rem",
+        full: "9999px"
+      }
+    }
+  }
+}
+</script>
+
+<style>
+body {
+  font-family: 'Lexend', sans-serif;
+  background: #0a0f18;
+}
+.hero-gradient {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(43, 124, 238, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(238, 43, 123, 0.15) 0%, transparent 50%);
+}
+</style>
+</head>
+
+<body class="bg-[#0a0f18] text-slate-100 min-h-screen dark">
+
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+
+<!-- NAVBAR -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+  <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+
+    <div class="flex items-center gap-2 cursor-pointer" onclick="goLogin()">
+      <div class="size-10 bg-primary rounded-xl flex items-center justify-center text-white">
+        <span class="material-symbols-outlined text-2xl">school</span>
+      </div>
+      <h2 class="text-2xl font-bold tracking-tight">BelajarYuk</h2>
+    </div>
+
+    <nav class="hidden md:flex items-center gap-10">
+      <a onclick="goLogin()" class="text-sm font-semibold text-primary cursor-pointer">Beranda</a>
+      <a onclick="goLogin()" class="text-sm font-medium text-slate-600 hover:text-primary cursor-pointer transition-colors">
+        Unggah Materi
+      </a>
+      <a onclick="goLogin()" class="text-sm font-medium text-slate-600 hover:text-primary cursor-pointer transition-colors">
+        Ringkasan Materi
+      </a>
+    </nav>
+
+    <div class="flex items-center gap-4">
+      <button onclick="goLogin()" class="py-2 text-sm font-bold hover:text-primary transition-colors">
+        Login
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<!-- HERO -->
+<main class="flex-1 flex flex-col items-center justify-center px-6 pt-32 pb-20 hero-gradient relative">
+
+  <div class="max-w-4xl w-full text-center">
+    <h1 class="text-6xl md:text-8xl font-black tracking-tight mb-8">
+      Belajar <span class="text-primary">Lebih Cerdas</span> Dengan BelajarYuk
+    </h1>
+
+    <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-12">
+      Upload materi PDF dan biarkan BelajarYuk membantu kamu memahami inti materi dengan cepat.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <button onclick="goLogin()" class="px-10 py-5 bg-primary hover:bg-primary/90 text-white rounded-2xl text-lg font-bold shadow-xl transition-all">
+        Mulai BelajarYuk
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<!-- FEATURES -->
+<section class="py-24 bg-background-dark">
+  <div class="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 justify-center">
+
+    <!-- Ringkasan Materi -->
+    <div class="text-center p-8 rounded-3xl hover:bg-slate-50 transition hover:scale-105">
+      <div class="text-pink-500 text-4xl mb-4">
+        <span class="material-symbols-outlined">auto_stories</span>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Ringkasan Materi</h3>
+      <p class="text-slate-500">
+        AI merangkum materi panjang menjadi poin penting untuk belajar ujian.
+      </p>
+    </div>
+
+    <!-- Upload PDF -->
+    <div class="text-center p-8 rounded-3xl hover:bg-slate-50 transition hover:scale-105">
+      <div class="text-amber-500 text-4xl mb-4">
+        <span class="material-symbols-outlined">cloud_upload</span>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Upload PDF</h3>
+      <p class="text-slate-500">
+        Upload materi kuliah dan sistem akan otomatis membuat kuis dari dokumen tersebut.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t py-10 text-center text-slate-500">
+  <p>BelajarYuk-Dive In, Genius Out!</p>
+</footer>
+
+</div>
+
+<script>
+function goLogin(){
+  window.location.href = "login.html";
+}
+
+function goUpload(){ goLogin(); }
+function goTutor(){ goLogin(); }
+function goSummary(){ goLogin(); }
+function startLearning(){ goLogin(); }
+</script>
+
+</body>
+</html>

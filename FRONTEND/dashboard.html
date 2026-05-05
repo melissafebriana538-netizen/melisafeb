@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src='https://meet.jit.si/external_api.js'></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#2b7cee",
+                        secondary: "#f472b6",
+                        "soft-pink": "#fce4ec",
+                        "accent-pink": "#f06292",
+                        "background-light": "#f8fafd",
+                        "background-dark": "#101822"
+                    },
+                    fontFamily: { display: ["Lexend"] },
+                    borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: 'Lexend', sans-serif; }
+        .glass-card { background: rgba(255,255,255,0.8); backdrop-filter: blur(8px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .profile-bg-gradient { background: linear-gradient(to bottom right, #ffffff, #fdf2f8, #fbcfe8); }
+        .dark .profile-bg-gradient { background: #101822; }
+        .tab-active { background-color: #2b7cee; color: white; }
+        .tab-inactive { background-color: #f1f5f9; color: #334155; }
+        .dark .tab-inactive { background-color: #1e293b; color: #cbd5e1; }
+        .modal-overlay { background-color: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .feedback-popup {
+            transition: opacity 0.3s ease;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            background-color: #f9fafb;
+            border-radius: 16px;
+        }
+        .dark .chat-container {
+            background-color: #1f2937;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        .message-user {
+            align-self: flex-end;
+            background-color: #2b7cee;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message-ai {
+            align-self: flex-start;
+            background-color: #e5e7eb;
+            color: #1f2937;
+            border-bottom-left-radius: 4px;
+        }
+        .dark .message-ai {
+            background-color: #374151;
+            color: #f3f4f6;
+        }
+        .option-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .quiz-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .dark .quiz-card {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: rgba(43,124,238,0.1);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .dark .chat-header {
+            border-color: #334155;
+        }
+        .clear-chat-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ef4444;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .clear-chat-btn:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <title>BelajarYuk - Dashboard</title>
+</head>
+<body class="bg-background-light text-slate-900 dark:bg-background-dark dark:text-slate-100 antialiased">
+    <div class="flex min-h-screen">
+        <!-- SIDEBAR -->
+        <aside class="w-72 bg-white border-r border-slate-100 flex flex-col fixed h-full z-10 dark:bg-slate-900 dark:border-slate-800">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="size-10 rounded-xl bg-primary flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">auto_stories</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-primary text-xl font-bold leading-none">BelajarYuk</h1>
+                        <p class="text-slate-400 text-xs font-medium">Dashboard</p>
+                    </div>
+                </div>
+                <nav class="space-y-1" id="sidebar-nav">
+                    <a onclick="showDashboard()" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary cursor-pointer" id="menu-dashboard"><span class="material-symbols-outlined">home</span><span class="font-medium">Beranda</span></a>
+                    <a onclick="showMateri()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800" id="menu-materi"><span class="material-symbols-outlined">book_2</span><span class="font-medium">Upload Materi</span></a>
+                    <a onclick="showRingkasan()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800" id="menu-ringkasan"><span class="material-symbols-outlined">menu_book</span><span class="font-medium">Ringkasan</span></a>
+                    <a onclick="showRuangBelajar()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800" id="menu-ruang"><span class="material-symbols-outlined">groups</span><span class="font-medium">Ruang Belajar</span></a>
+                    <a onclick="showProfil()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800" id="menu-profil"><span class="material-symbols-outlined">person</span><span class="font-medium">Profil</span></a>
+                </nav>
+            </div>
+            <div class="mt-auto p-6">
+                <div class="flex items-center gap-3 p-2 border-t border-slate-100 pt-6 dark:border-slate-800">
+                    <div class="size-10 rounded-full bg-slate-200 overflow-hidden">
+                        <img id="sidebarAvatar" src="https://via.placeholder.com/40" alt="User"/>
+                    </div>
+                    <div class="flex flex-col">
+                        <p id="sidebarName" class="text-sm font-bold text-slate-800 dark:text-slate-200">Loading...</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Mahasiswa</p>
+                    </div>
+                    <button onclick="logoutUser()" class="ml-auto text-slate-400"><span class="material-symbols-outlined text-xl">logout</span></button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="ml-72 flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-background-dark relative overflow-hidden">
+            <!-- DASHBOARD -->
+            <div id="dashboard-content" class="flex flex-col h-full p-8 overflow-y-auto">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900 tracking-tight dark:text-white" id="welcomeMsg">Halo, Selamat Belajar! </h2>
+                        <p class="text-slate-500 dark:text-slate-400">Lanjutkan progres belajarmu hari ini.</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="showNotifications()" class="size-11 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                            <span class="material-symbols-outlined">notifications</span>
+                        </button>
+                    </div>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-3xl">bookmark</span><div><p class="text-sm text-slate-500 dark:text-slate-400">Total Materi</p><p id="statTotalMateri" class="text-2xl font-bold">0</p></div></div></div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-3xl">quiz</span><div><p class="text-sm text-slate-500 dark:text-slate-400">Kuis Diikuti</p><p id="statTotalQuiz" class="text-2xl font-bold">0</p></div></div></div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-green-500 text-3xl">trending_up</span><div><p class="text-sm text-slate-500 dark:text-slate-400">Rata-rata Skor</p><p id="statAvgScore" class="text-2xl font-bold">0%</p></div></div></div>
+                </div>
+                <!-- Chat AI-->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden mb-8">
+                    <div class="chat-header">
+                        <h3 class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">smart_toy</span> AI Tutor - "Apa yang ingin kamu pelajari?"</h3>
+                        <button id="clearChatBtn" class="clear-chat-btn"><span class="material-symbols-outlined text-sm">delete</span> Hapus Percakapan</button>
+                    </div>
+                    <div id="chatMessages" class="chat-container h-96 flex flex-col overflow-y-auto p-4 space-y-3"></div>
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                        <div class="flex gap-2">
+                            <input type="text" id="chatInput" placeholder="Ketik topik belajar... misal: 'aljabar linear', 'grammar dasar'" class="flex-1 rounded-xl border p-2 dark:bg-slate-900 dark:border-slate-600">
+                            <button id="sendChatBtn" class="bg-primary text-white px-4 py-2 rounded-xl">Kirim</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm"><h3 class="text-xl font-bold mb-4">📚 Riwayat Materi Terbaru</h3><div id="recentMaterialsList" class="space-y-3"></div><button onclick="showMateri()" class="mt-4 text-primary font-semibold">+ Upload Materi Baru</button></div>
+            </div>
+
+            <!-- MATERI (upload dokumen) -->
+            <div id="materi-content" class="hidden flex flex-col h-full overflow-y-auto p-6 md:p-8 bg-background-light dark:bg-background-dark">
+                <div class="max-w-6xl mx-auto w-full space-y-8">
+                    <div class="flex justify-between"><div><h1 class="text-3xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">📚 Upload Materi</h1><p class="text-slate-500 dark:text-slate-400">Upload file dokumen (PDF/DOC/TXT) untuk diproses AI</p></div><button onclick="openHowTo()" class="text-sm flex items-center gap-1 text-primary hover:underline"><span class="material-symbols-outlined text-base">help</span> Panduan</button></div>
+                    <div id="docPanel" class="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6">
+                        <div class="flex items-center gap-3 mb-4"><div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600"><span class="material-symbols-outlined">upload_file</span></div><h2 class="text-xl font-bold">Upload Dokumen Materi</h2></div>
+                        <div class="flex flex-col md:flex-row gap-4 items-center">
+                            <label class="flex-1 cursor-pointer bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-xl px-5 py-3 text-center">
+                                <input type="file" id="fileUploadInput" accept=".pdf,.doc,.docx,.txt,.md" class="hidden">
+                                <span class="flex items-center justify-center gap-2"><span class="material-symbols-outlined">folder_open</span> Pilih file (PDF, DOC, TXT)</span>
+                            </label>
+                            <button id="processDocBtn" class="bg-primary text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2"><span class="material-symbols-outlined">auto_awesome</span> Proses Dokumen</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-3">📌 File akan diproses AI untuk menghasilkan ringkasan & kuis (jumlah soal dinamis).</p>
+                    </div>
+                    <div id="loadingIndicator" class="hidden bg-white dark:bg-slate-800 rounded-xl p-5 text-center"><div class="animate-pulse flex flex-col items-center gap-3"><span class="material-symbols-outlined text-primary text-4xl">smart_toy</span><p>Memproses materi...</p></div></div>
+                    <div><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">history</span><h3 class="font-semibold">Materi Tersimpan</h3></div><div id="historyList" class="flex flex-wrap gap-3 mt-2"></div></div>
+                    <div id="resultArea" class="hidden space-y-8">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md border-l-8 border-l-primary"><div class="px-6 py-4 bg-primary/5 flex items-center gap-2"><span class="material-symbols-outlined text-primary">summarize</span><h3 class="font-bold">Ringkasan Pembelajaran</h3></div><div class="p-6"><div id="summaryText" class="text-slate-700 dark:text-slate-300 leading-relaxed"></div></div></div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md"><div class="px-6 py-4 bg-secondary/10 flex justify-between items-center"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary">quiz</span><h3 class="font-bold">Quiz Pemahaman</h3></div><button id="resetQuizBtn" class="text-xs bg-white dark:bg-slate-700 px-3 py-1 rounded-full">Reset Jawaban</button></div><div id="quizContainer" class="p-6 space-y-6"></div><div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center"><span id="quizScore" class="text-sm">Skor: --</span><button id="submitQuizBtn" class="bg-secondary text-white px-5 py-2 rounded-xl font-bold">Kirim Jawaban</button></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RINGKASAN -->
+            <div id="ringkasan-content" class="hidden flex flex-col h-full overflow-y-auto p-8 bg-background-light dark:bg-background-dark">
+                <div class="max-w-6xl mx-auto">
+                    <h1 class="text-3xl font-bold mb-6">📖 Ringkasan Materi & Kuis</h1>
+                    <div id="allSummariesContainer" class="space-y-8"></div>
+                    <div id="summaryDetailArea" class="hidden mt-8 p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md border-l-8 border-l-primary">
+    <div class="flex justify-end">
+        <button onclick="closeSummaryDetail()" class="text-slate-400 hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="mb-6">
+        <h2 id="detailTitle" class="text-2xl font-bold mb-4"></h2>
+        <div id="detailSummary" class="text-slate-700 dark:text-slate-300 leading-relaxed mb-6"></div>
+    </div>
+    <!-- Bagian Riwayat Kuis akan ditampilkan di sini secara dinamis -->
+    <div id="quizHistoryContainer" class="mt-6"></div>
+</div>
+            </div>
+            </div>
+
+            <!-- RUANG BELAJAR -->
+            <div id="ruang-content" class="hidden flex flex-col h-full">
+                <div class="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border-b">
+                    <div><h1 class="text-xl font-bold">Diskusi Kelompok</h1><div class="flex items-center gap-2 mt-1"><span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-xs">Sedang Berlangsung</span></div></div>
+                    <div class="flex gap-2"><button onclick="openVirtualQuiz()" class="px-3 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-1"><span class="material-symbols-outlined text-base">video_call</span> Buat Kuis Virtual</button><button onclick="leaveRoom()" class="h-10 w-10 text-red-500 bg-red-50 rounded-lg"><span class="material-symbols-outlined">logout</span></button></div>
+                </div>
+                <!-- Kontrol Ruang Privat -->
+                  <div class="bg-white dark:bg-slate-800 p-3 border-b flex flex-wrap gap-2 items-center">
+                    <button id="createRoomBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1">
+                     <span class="material-symbols-outlined text-base">add</span> Buat Ruang Baru
+                        </button>
+                      <input type="text" id="inviteCodeInput" placeholder="Kode undangan" class="border rounded-lg px-2 py-1 text-sm w-32 dark:bg-slate-700 dark:border-slate-600">
+                    <button id="joinRoomBtn" class="bg-primary hover:bg-primary/80 text-white px-3 py-1 rounded-lg text-sm">Gabung</button>
+                    <div id="roomInfo" class="text-xs text-slate-500 dark:text-slate-400 ml-auto"></div>
+                  </div>
+                <div class="flex flex-1 overflow-hidden">
+                    <main class="flex-1 flex flex-col bg-white dark:bg-background-dark"><div id="chatMessagesContainer" class="flex-1 overflow-y-auto p-6 space-y-4"></div><div class="p-4 bg-white dark:bg-slate-900 border-t"><div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl p-2"><input id="chatMessageInput" class="flex-1 bg-transparent border-none text-sm py-2" placeholder="Ketik pesan..."/><button onclick="sendMessageDynamic()" class="h-10 px-4 bg-primary text-white rounded-lg font-medium flex items-center gap-2"><span class="material-symbols-outlined">send</span> Kirim</button></div></div></main>
+                    <aside class="w-80 bg-slate-50 dark:bg-slate-900 border-l flex flex-col">
+                        <div class="p-4 border-b"><h3 class="text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">folder_shared</span> Dokumen Bersama</h3></div>
+                        <div class="px-4 pt-2">
+                            <button onclick="uploadSharedDocument()" class="w-full py-2 text-xs font-bold text-white bg-primary rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90">
+                                <span class="material-symbols-outlined text-[18px]">upload_file</span> Upload Dokumen Bersama
+                            </button>
+                        </div>
+                        <div id="documentsContainer" class="p-4 space-y-3 overflow-y-auto max-h-[40%]"></div>
+                        <div class="p-4 border-y"><h3 class="text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">group</span> Anggota Aktif</h3></div>
+                        <div id="membersContainer" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+                        <div class="p-4 border-t"><button onclick="inviteFriendDynamic()" class="w-full py-2 text-xs font-bold text-primary border border-primary/30 rounded-lg flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[18px]">person_add</span> Undang Teman</button></div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- PROFIL -->
+            <div id="profil-content" class="hidden flex flex-col h-full overflow-y-auto profile-bg-gradient p-6 lg:p-10">
+                <div class="mx-auto max-w-4xl space-y-8">
+                    <section class="flex flex-col gap-6 rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900 md:flex-row md:items-center">
+                        <div class="relative group"><div class="h-32 w-32 overflow-hidden rounded-full border-4 border-white shadow-md ring-2 ring-primary/20"><img id="profileAvatar" class="h-full w-full object-cover" src="https://via.placeholder.com/150"></div><button id="changePhotoBtn" class="absolute bottom-0 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-4 ring-white"><span class="material-symbols-outlined text-sm">photo_camera</span></button></div>
+                        <div class="flex-1"><h1 id="profileDisplayName" class="text-2xl font-bold">Loading...</h1><p class="text-slate-500">Mahasiswa</p></div>
+                    </section>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2"><div class="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-900 border-l-4 border-primary"><div class="flex items-center gap-4"><div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">menu_book</span></div><div><p class="text-sm">Materi Selesai</p><p id="profileMateriCount" class="text-xl font-bold">0</p></div></div></div><div class="rounded-xl bg-white p-5 shadow-sm dark:bg-slate-900 border-l-4 border-secondary"><div class="flex items-center gap-4"><div class="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 text-secondary"><span class="material-symbols-outlined">assignment_turned_in</span></div><div><p class="text-sm">Kuis Diikuti</p><p id="profileQuizCount" class="text-xl font-bold">0</p></div></div></div></div>
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        <div class="lg:col-span-2"><section class="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900"><h3 class="mb-6 text-lg font-bold">Informasi Pribadi</h3><div class="grid grid-cols-1 gap-6 md:grid-cols-2"><div><label>Nama Lengkap</label><input id="profileName" class="w-full rounded-lg border p-2.5" type="text" placeholder="Nama Anda"></div><div><label>Email</label><input id="profileEmail" class="w-full rounded-lg border p-2.5" type="email" placeholder="email@example.com"></div><div><label>NIM</label><input id="profileNim" class="w-full rounded-lg border p-2.5" type="text" placeholder="NIM"></div><div><label>Universitas</label><input id="profileUniv" class="w-full rounded-lg border p-2.5" type="text" placeholder="Universitas"></div></div></section></div>
+                        <div class="space-y-8"><section class="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900"><h3 class="mb-6 text-lg font-bold">Tampilan</h3><div class="space-y-6"><div class="flex justify-between"><div class="flex gap-3"><span class="material-symbols-outlined">dark_mode</span><p>Mode Gelap</p></div><label class="relative inline-flex"><input id="darkModeToggle" type="checkbox" class="peer sr-only"><div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-full"></div></label></div></div></section><section class="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900"><h3 class="mb-6 text-lg font-bold">Notifikasi</h3><div class="space-y-4"><div class="flex justify-between"><div><p>Pengingat Kuis</p><p class="text-xs text-slate-500">Dapatkan notifikasi jika ada kuis baru.</p></div><input id="notifQuiz" type="checkbox" checked class="h-4 w-4 rounded"></div><div class="flex justify-between"><div><p>Suara & Getar</p><p class="text-xs text-slate-500">Feedback audio saat kuis berlangsung.</p></div><input id="notifSound" type="checkbox" class="h-4 w-4 rounded"></div></div></section></div>
+                    </div>
+                    <div class="flex justify-end gap-4 pt-8 border-t"><button id="cancelBtn" class="px-6 py-3 bg-slate-200 rounded-xl font-bold">Batalkan</button><button id="saveBtn" class="px-8 py-3 bg-primary rounded-xl font-bold text-white shadow-lg">Simpan Perubahan</button></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL VIRTUAL QUIZ -->
+    <div id="virtualQuizModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center p-4 border-b dark:border-slate-700">
+                <h2 class="text-xl font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">video_call</span> Ruang Kuis Virtual</h2>
+                <button onclick="closeVirtualQuiz()" class="text-slate-500 hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden p-4 gap-4">
+                <div class="flex-1 bg-black rounded-xl overflow-hidden flex flex-col min-h-[300px]">
+                    <div class="bg-primary/10 p-2 text-sm font-bold">📹 Video Call</div>
+                    <div id="jitsiContainer" class="flex-1 w-full"></div>
+                </div>
+                <div class="flex-1 bg-white dark:bg-slate-900 rounded-xl overflow-hidden flex flex-col border dark:border-slate-700">
+                    <div class="bg-secondary/10 p-2 text-sm font-bold flex justify-between items-center">
+                        <span>📝 Kuis dari Dokumen</span>
+                        <select id="quizMaterialSelect" class="text-xs bg-white dark:bg-slate-800 rounded px-2 py-1 border"><option value="">Pilih materi...</option></select>
+                    </div>
+                    <div id="virtualQuizContent" class="flex-1 overflow-y-auto p-4 space-y-4"><p class="text-center text-slate-500">Pilih materi di atas untuk memulai kuis.</p></div>
+                    <div class="p-3 border-t dark:border-slate-700 flex justify-end"><button id="submitVirtualQuizBtn" class="bg-primary text-white px-4 py-1 rounded-lg text-sm font-semibold disabled:opacity-50" disabled>Kirim Jawaban</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal untuk Kuis & Pemahaman Step by Step -->
+    <div id="quizModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center p-4 border-b dark:border-slate-700">
+                <h2 id="modalTitle" class="text-xl font-bold">Kuis</h2>
+                <button onclick="closeQuizModal()" class="text-slate-500 hover:text-primary"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div id="modalContent" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+            <div class="p-4 border-t dark:border-slate-700 flex justify-end">
+                <button id="modalSubmitBtn" class="bg-secondary text-white px-5 py-2 rounded-xl font-bold">Kirim Jawaban</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================== KONFIGURASI ======================
+        const API_BASE = "http://localhost:3000/api";
+        
+        function getToken() {
+            return localStorage.getItem("token");
+        }
+        
+        let currentUser = JSON.parse(localStorage.getItem("user"));
+        if (!getToken() || !currentUser) {
+            window.location.href = "login.html";
+        }
+
+        // ====================== GLOBAL STATE ======================
+        let materials = [];
+        let currentMaterial = null;
+        let currentQuizAnswers = {};
+        let socket = null;
+        let chatMessages = [];
+        let jitsiApi = null;
+        let currentVirtualMaterial = null;
+        let virtualQuizAnswers = {};
+        let notifInterval = null;
+        let chatHistory = [];
+        let currentRoom = null;
+        let currentQuizFeedbacks = {}; 
+        let currentSummaryMaterial = null;
+        let currentSummaryQuizAnswers = {};
+        let currentModalQuiz = null;
+        let currentModalStep = null;
+        let stepState = {
+          stepIndex: 1,
+          totalSteps: 5
+        };
+
+        // ====================== NOTIFIKASI & SUARA ======================
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(perm => console.log('Notifikasi permission:', perm));
+            }
+        }
+
+        function playFeedback(isCorrect) {
+            const soundEnabled = document.getElementById('notifSound')?.checked === true;
+            if (!soundEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = isCorrect ? 'sine' : 'square';
+                oscillator.frequency.value = isCorrect ? 880 : 440;
+                gainNode.gain.value = 0.3;
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            } catch(e) { console.warn('Audio tidak didukung'); }
+            if (navigator.vibrate) navigator.vibrate(isCorrect ? 100 : 200);
+        }
+
+        function showQuizReminder(materiTitle) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            if (!document.getElementById('notifQuiz')?.checked) return;
+            new Notification('BelajarYuk - Pengingat Kuis', {
+                body: `Anda memiliki kuis untuk materi "${materiTitle}". Yuk kerjakan!`,
+                icon: 'https://via.placeholder.com/64',
+                silent: false
+            });
+        }
+
+        function checkPendingQuizzes() {
+            materials.forEach(m => {
+                if (!m.quizResults?.length) showQuizReminder(m.title);
+            });
+        }
+
+        function startQuizReminderInterval() {
+            if (notifInterval) clearInterval(notifInterval);
+            if (document.getElementById('notifQuiz')?.checked) {
+                notifInterval = setInterval(checkPendingQuizzes, 60 * 60 * 1000);
+            }
+        }
+
+        // ====================== HELPER FETCH ======================
+        async function apiFetch(endpoint, options = {}) {
+            const token = getToken();
+            const headers = { "Content-Type": "application/json", "x-auth-token": token };
+            const res = await fetch(`${API_BASE}${endpoint}`, { headers, ...options });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        }
+
+        // ====================== AI FEEDBACK ======================
+        async function getAIFeedback(question, options, userAnswer, correctIndex) {
+            try {
+                const token = getToken();
+                const response = await fetch(`${API_BASE}/ai-feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ question, options, userAnswer, correctIndex })
+                });
+                if (!response.ok) throw new Error('Gagal memanggil AI');
+                return await response.json();
+            } catch (err) {
+                console.error('AI Feedback Error:', err);
+                const isCorrect = (userAnswer === options[correctIndex]);
+                return {
+                    isCorrect: isCorrect,
+                    explanation: isCorrect ? 'Jawaban benar! Terus belajar ya.' : 'Jawaban kurang tepat. Coba pelajari lagi materinya.'
+                };
+            }
+        }
+
+        function showAIFeedback(questionIndex, feedback, isSummary = false) {
+            const containerId = isSummary ? 'detailQuizContainer' : 'quizContainer';
+            const parentDiv = document.querySelector(`#${containerId} > div:nth-child(${questionIndex+1})`);
+            if (!parentDiv) return;
+            let feedbackDiv = parentDiv.querySelector(`.feedback-${isSummary ? 'summary' : 'main'}-${questionIndex}`);
+            if (!feedbackDiv) {
+                feedbackDiv = document.createElement('div');
+                feedbackDiv.className = `feedback-popup feedback-${isSummary ? 'summary' : 'main'}-${questionIndex}`;
+                parentDiv.appendChild(feedbackDiv);
+            }
+            const icon = feedback.isCorrect ? '✅' : '❌';
+            feedbackDiv.innerHTML = `${icon} ${feedback.explanation}`;
+            feedbackDiv.classList.add(feedback.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800');
+            setTimeout(() => {
+                if (feedbackDiv) feedbackDiv.style.opacity = '0';
+                setTimeout(() => feedbackDiv?.remove(), 500);
+            }, 5000);
+        }
+
+        // ====================== NAVIGASI ======================
+        function showDashboard() { setActive("dashboard-content", "menu-dashboard"); loadDashboard(); }
+        function showMateri() { setActive("materi-content", "menu-materi"); loadMaterials(); }
+        function showRingkasan() { setActive("ringkasan-content", "menu-ringkasan"); loadAllSummaries(); }
+        function showRuangBelajar() { setActive("ruang-content", "menu-ruang"); initSocket(); loadChatHistory(); loadSharedDocsAndMembers(); }
+        function showProfil() { setActive("profil-content", "menu-profil"); loadProfile(); }
+        function setActive(contentId, menuId) {
+            ['dashboard-content','materi-content','ringkasan-content','ruang-content','profil-content'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(contentId).classList.remove('hidden');
+            document.querySelectorAll('#sidebar-nav a').forEach(a => a.classList.remove('bg-primary/10','text-primary'));
+            document.getElementById(menuId).classList.add('bg-primary/10','text-primary');
+        }
+        function logoutUser() { localStorage.clear(); window.location.href = "login.html"; }
+        function showNotifications() { alert("Tidak ada notifikasi baru."); }
+        function openHowTo() { alert("Panduan: Upload file dokumen (PDF/DOC/TXT). AI akan membuat ringkasan & kuis."); }
+        function leaveRoom() { if(confirm("Keluar ruangan?")) showDashboard(); }
+        function inviteFriendDynamic() { alert("Salin link undangan: " + window.location.href); }
+
+        // ====================== STATISTIK ======================
+        async function loadStats() {
+            try {
+                const stats = await apiFetch("/stats");
+                document.getElementById("statTotalMateri").innerText = stats.totalMateri;
+                document.getElementById("statTotalQuiz").innerText = stats.totalQuizzes;
+                document.getElementById("statAvgScore").innerText = stats.avgScore + "%";
+            } catch(e) { console.error("Gagal load stats:", e); }
+        }
+
+        // ====================== DASHBOARD ======================
+        async function loadDashboard() {
+            await loadMaterials();
+            await loadStats();
+            document.getElementById("welcomeMsg").innerHTML = `Halo, ${currentUser.name}! 👋`;
+            const recent = materials.slice(0,3).map(m => `<div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl"><div class="font-medium">${m.title}</div><div class="text-xs text-slate-500">${new Date(m.createdAt).toLocaleDateString()}</div></div>`).join('');
+            document.getElementById("recentMaterialsList").innerHTML = recent || "<p>Belum ada materi</p>";
+            if (document.getElementById('notifQuiz')?.checked) checkPendingQuizzes();
+        }
+
+        // ====================== CHAT AI (dengan alur bertahap & modal) ======================
+function addChatMessage(role, content, extra = null) {
+    const container = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    div.className = `message message-${role === 'user' ? 'user' : 'ai'}`;
+
+    if (role === 'ai') {
+        let html = `<div class="font-semibold text-sm mb-1">AI Tutor</div><div>${content}</div>`;
+
+        if (extra && extra.options && Array.isArray(extra.options)) {
+            const optionsHtml = `
+                <div class="option-buttons mt-2">
+                    ${extra.options.map(opt => `
+                        <button class="bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1 rounded-full text-sm"
+                        data-opt="${opt}" data-topic="${extra.topic || ''}">
+                        ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            div.innerHTML = html + optionsHtml;
+
+        } else if (extra && extra.quiz) {
+            div.innerHTML = html + `
+                <button class="bg-primary text-white px-4 py-1 rounded-lg text-sm mt-2 open-quiz-btn">
+                    Mulai Kuis
+                </button>
+            `;
+        } else if (extra && extra.step) {
+            div.innerHTML = html + `
+                <button class="bg-primary text-white px-4 py-1 rounded-lg text-sm mt-2 open-step-btn">
+                    Mulai Pemahaman
+                </button>
+            `;
+        } else {
+            div.innerHTML = html;
+        }
+
+    } else {
+        div.innerHTML = `<div class="font-semibold text-sm mb-1">Anda</div><div>${content}</div>`;
+    }
+
+    container.appendChild(div);
+
+    // ✅ EVENT LISTENER SETELAH APPEND
+    if (extra && extra.options) {
+        div.querySelectorAll('button[data-opt]').forEach(btn => {
+            btn.onclick = () => {
+                const opt = btn.getAttribute('data-opt');
+                const topic = btn.getAttribute('data-topic');
+                selectOption(opt, topic);
+            };
+        });
+    }
+
+    if (extra && extra.quiz) {
+        div.querySelector('.open-quiz-btn').onclick = () => openQuizModal(extra.quiz, extra.topic);
+    }
+
+    if (extra && extra.step) {
+        div.querySelector('.open-step-btn').onclick = () => openStepModal(extra.step, extra.topic);
+    }
+
+    container.scrollTop = container.scrollHeight;
+    saveChatHistory();
+}
+let currentStepContext = null; // { stepIndex, totalSteps, topic }
+
+// ====================== FUNGSI SEND CHAT MESSAGE (FINAL) ======================
+async function sendChatMessage() {
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+    if (!text) return;
+
+    addChatMessage('user', text);
+    chatHistory.push({ role: 'user', content: text });
+    input.value = "";
+
+    // Siapkan payload dasar
+    let payload = { 
+       messages: chatHistory, 
+       selectedOption: null, 
+       topic: null,
+       stepState: stepState // ⬅️ TAMBAH INI
+    };
+
+    // Jika pesan adalah jawaban step dan sedang dalam mode step, kirim stepContext
+    if (text.toLowerCase().startsWith('jawaban:') && currentStepContext) {
+    payload.stepState = {
+        stepIndex: currentStepContext.stepIndex,
+        totalSteps: currentStepContext.totalSteps
+    };
+}
+
+    try {
+        const response = await fetch(`${API_BASE}/chat-ai`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'x-auth-token': getToken() 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        // 🔥 Tangani semua tipe yang mungkin dikirim AI
+        if (data.type === 'subtopics' || data.type === 'options' || data.type === 'option') {
+            const message = data.message || 'Pilih opsi:';
+            const options = data.options.map(opt => typeof opt === 'object' ? (opt.name || opt.text || opt) : opt);
+            addChatMessage('ai', message, { options: options, topic: data.topic });
+        }
+        else if (data.type === 'explanation_with_options') {
+            addChatMessage('ai', data.content);
+            const options = data.options.map(opt => typeof opt === 'object' ? (opt.name || opt.text || opt) : opt);
+            addChatMessage('ai', data.message, { options: options, topic: data.topic });
+        }
+        else if (data.type === 'quiz') {
+            addChatMessage('ai', 'Kuis siap!', { quiz: { questions: data.questions }, topic: data.topic });
+        }
+        else if (data.type === 'step') {
+            // Simpan context step untuk jawaban berikutnya
+            currentStepContext = { 
+                stepIndex: data.stepIndex, 
+                totalSteps: data.totalSteps, 
+                topic: data.topic 
+            };
+            stepState = {
+                stepIndex : data.stepIndex,
+                totalSteps : data.totalSteps
+            }
+            addChatMessage('ai', 'Pemahaman step by step siap!', { step: data, topic: data.topic });
+        }
+        else if (data.type === 'step_complete') {
+            // Reset context karena step selesai
+            currentStepContext = null;
+            addChatMessage('ai', data.message || 'Selamat! Anda telah menyelesaikan materi.');
+        }
+        else {
+            addChatMessage('ai', data.content || JSON.stringify(data));
+        }
+
+        chatHistory.push({ role: 'assistant', content: JSON.stringify(data) });
+
+    } catch (err) {
+        console.error(err);
+        addChatMessage('ai', "Server error.");
+    }
+}
+async function selectOption(option, topic) {
+    addChatMessage('user', `Pilih: ${option}`);
+    chatHistory.push({ role: 'user', content: `Pilih: ${option}` });
+
+    let selected = null;
+    if (option === 'Quiz') {
+      selected = 'quiz';
+    } 
+    else if (option === 'Pemahaman Step by Step') {
+     selected = 'step';
+     stepState = {
+        stepIndex: 1,
+        totalSteps: 5
+     };
+    } 
+    else {
+     selected = option;
+    }
+
+
+    const response = await fetch(`${API_BASE}/chat-ai`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'x-auth-token': getToken() 
+        },
+        body: JSON.stringify({ 
+         messages: chatHistory, 
+         selectedOption: selected, 
+         topic: topic,
+         stepState: stepState == 'step' ? stepState : null
+        })
+        
+    });
+
+    const data = await response.json();
+
+    if (data.type === 'quiz') {
+     addChatMessage('ai', 'Kuis siap!', { quiz: { questions: data.questions }, topic });
+    } 
+    else if (data.type === 'step') {
+
+    // ✅ SIMPAN STEP DARI AI
+    stepState = {
+        stepIndex: data.stepIndex,
+        totalSteps: data.totalSteps
+    };
+
+    currentStepContext = {
+        stepIndex: data.stepIndex,
+        totalSteps: data.totalSteps,
+        topic: data.topic
+    };
+
+    addChatMessage('ai', 'Pemahaman siap!', { step: data, topic });
+    }
+    else if (data.type === 'explanation_with_options') {
+        addChatMessage('ai', data.content);
+        const options = data.options.map(opt => typeof opt === 'object' ? (opt.name || opt.text || opt) : opt);
+        addChatMessage('ai', data.message, { options, topic });
+    } 
+    else if (data.type === 'subtopics' || data.type === 'options' || data.type === 'option') {
+        const message = data.message || 'Pilih opsi:';
+        const options = data.options.map(opt => typeof opt === 'object' ? (opt.name || opt.text || opt) : opt);
+        addChatMessage('ai', message, { options, topic });
+    }
+    else {
+        addChatMessage('ai', data.content || JSON.stringify(data));
+    }
+
+    chatHistory.push({ role: 'assistant', content: JSON.stringify(data) });
+}
+// ====================== MODAL FUNCTIONS ======================
+let currentModalQuizAnswers = {};
+
+function openQuizModal(quizData, topic) {
+    let questions = [];
+    if (quizData.questions && Array.isArray(quizData.questions)) {
+        questions = quizData.questions;
+    } else if (Array.isArray(quizData)) {
+        questions = quizData;
+    } else if (quizData.question) {
+        questions = [quizData.question];
+    } else {
+        console.error("Format quiz tidak dikenal:", quizData);
+        alert("Format kuis tidak valid. Silakan coba lagi.");
+        return;
+    }
+    
+    questions = questions.map(q => ({
+        text: q.text || q.question || "Soal tidak tersedia",
+        options: q.options || [],
+        correct: q.correct || 0
+    }));
+    
+    if (questions.length === 0) {
+        alert("Tidak ada soal yang valid.");
+        return;
+    }
+    
+    currentModalQuiz = { questions, topic };
+    currentModalQuizAnswers = {};
+    
+    document.getElementById("modalTitle").innerText = `Kuis: ${topic || 'Belajar'}`;
+    const container = document.getElementById("modalContent");
+    container.innerHTML = "";
+    
+    questions.forEach((q, idx) => {
+        const div = document.createElement("div");
+        div.className = "mb-4 border-b pb-2";
+        div.innerHTML = `
+            <p class="font-bold">${idx+1}. ${q.text}</p>
+            <div class="ml-4 space-y-1" id="modal_q_options_${idx}">
+                ${q.options.map((opt, optIdx) => `
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="modal_q_${idx}" value="${optIdx}" data-idx="${idx}">
+                        ${String.fromCharCode(65+optIdx)}. ${opt}
+                    </label>
+                `).join('')}
+            </div>
+            <div id="modal_feedback_${idx}" class="text-sm mt-1"></div>
+        `;
+        container.appendChild(div);
+        
+        // Event listener untuk setiap radio button
+        const radios = div.querySelectorAll(`input[name="modal_q_${idx}"]`);
+        radios.forEach(radio => {
+            radio.addEventListener('change', async (e) => {
+                const selectedVal = parseInt(e.target.value);
+                currentModalQuizAnswers[idx] = selectedVal;
+                const userAnswerText = q.options[selectedVal];
+                const feedback = await getAIFeedback(q.text, q.options, userAnswerText, q.correct);
+                const feedbackDiv = document.getElementById(`modal_feedback_${idx}`);
+                const icon = feedback.isCorrect ? '✅' : '❌';
+                feedbackDiv.innerHTML = `${icon} ${feedback.explanation}`;
+                feedbackDiv.className = `text-sm mt-1 ${feedback.isCorrect ? 'text-green-600' : 'text-red-600'}`;
+                playFeedback(feedback.isCorrect);
+            });
+        });
+    });
+    
+    document.getElementById("quizModal").classList.remove("hidden");
+    document.getElementById("modalSubmitBtn").onclick = () => submitModalQuiz(currentModalQuiz);
+}
+function closeQuizModal() {
+    document.getElementById("quizModal").classList.add("hidden");
+    // Hapus tombol lanjut jika ada
+    const nextBtn = document.getElementById("nextStepBtn");
+    if (nextBtn) nextBtn.remove();
+    // Reset tombol submit
+    const submitBtn = document.getElementById("modalSubmitBtn");
+    submitBtn.style.display = "inline-flex";
+    submitBtn.innerText = "Kirim Jawaban"; // teks default
+    currentModalStep = null;
+}
+
+async function submitModalQuiz(quiz) {
+    let answers = [];
+    for (let i = 0; i < quiz.questions.length; i++) {
+        const selected = currentModalQuizAnswers[i];
+        answers.push(selected !== undefined ? selected : -1);
+    }
+    let correct = 0;
+    quiz.questions.forEach((q, idx) => {
+        if (answers[idx] === q.correct) correct++;
+    });
+    const score = Math.round(correct / quiz.questions.length * 100);
+    
+    if (confirm(`Skor Anda: ${correct}/${quiz.questions.length} (${score}%). Simpan hasil?`)) {
+        try {
+            await fetch(`${API_BASE}/chat-quiz/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+                body: JSON.stringify({
+                    topic: quiz.topic,
+                    mode: 'quiz',
+                    questions: quiz.questions.map((q, idx) => ({
+                        ...q,
+                        userAnswer: answers[idx],
+                        isCorrect: answers[idx] === q.correct
+                    })),
+                    score
+                })
+            });
+            alert(`Skor tersimpan: ${correct}/${quiz.questions.length} (${score}%)`);
+            loadStats();
+            addChatMessage('ai', `Skor kuis "${quiz.topic}": ${correct}/${quiz.questions.length} (${score}%). ${score >= 70 ? 'Bagus!' : 'Terus belajar!'}`);
+            chatHistory.push({ role: 'assistant', content: `Skor kuis: ${score}%` });
+            saveChatHistory();
+        } catch (e) {
+            alert("Gagal menyimpan skor.");
+        }
+    }
+    closeQuizModal();
+}
+function openStepModal(step, topic) {
+    console.log("openStepModal - step:", step);
+    currentModalStep = { step, topic };
+    
+    // 1. Reset tombol submit: tampilkan dan ubah teks
+    const submitBtn = document.getElementById("modalSubmitBtn");
+    submitBtn.style.display = "inline-flex";
+    submitBtn.innerText = "Jawab & Lihat Feedback";
+    submitBtn.onclick = () => submitModalStep(currentModalStep);
+    
+    // 2. Hapus tombol "Lanjut" dari step sebelumnya (jika ada)
+    const oldNextBtn = document.getElementById("nextStepBtn");
+    if (oldNextBtn) oldNextBtn.remove();
+    
+    // 3. Set judul dan konten modal
+    document.getElementById("modalTitle").innerText = `Pemahaman Step by Step: ${topic || 'Belajar'}`;
+    const container = document.getElementById("modalContent");
+    container.innerHTML = `<div class="mb-4">${step.explanation}</div><div id="stepFeedbackArea"></div>`;
+    
+    // 4. Jika ada soal, buat elemen soal dan feedback
+    if (step.question) {
+        const q = step.question;
+        const div = document.createElement("div");
+        div.className = "mt-4 border-t pt-4";
+        div.innerHTML = `
+            <p class="font-bold">Soal Pemahaman:</p>
+            <p>${q.text}</p>
+            <div class="ml-4 space-y-1 mt-2" id="stepOptions">
+                ${q.options.map((opt, optIdx) => `
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="modal_step_q" value="${optIdx}">
+                        ${String.fromCharCode(65+optIdx)}. ${opt}
+                    </label>
+                `).join('')}
+            </div>
+            <div id="stepFeedback" class="text-sm mt-2"></div>
+        `;
+        container.appendChild(div);
+    }
+    
+    // 5. Tampilkan modal
+    document.getElementById("quizModal").classList.remove("hidden");
+}
+async function submitModalStep(modalData) {
+    const { step, topic } = modalData;
+    const selectedRadio = document.querySelector(`input[name="modal_step_q"]:checked`);
+    if (!selectedRadio) {
+        alert("Silakan pilih jawaban terlebih dahulu.");
+        return;
+    }
+    const userAnswer = parseInt(selectedRadio.value);
+    const userAnswerText = step.question.options[userAnswer];
+    
+    // Panggil AI feedback (backend sudah diperbaiki untuk penjelasan panjang)
+    const feedback = await getAIFeedback(step.question.text, step.question.options, userAnswerText, step.question.correct);
+    const isCorrect = feedback.isCorrect;
+    const feedbackText = feedback.explanation;
+    
+    // Tampilkan feedback di area yang sesuai
+    const feedbackDiv = document.getElementById("stepFeedback");
+    if (feedbackDiv) {
+        const icon = isCorrect ? '✅' : '❌';
+        feedbackDiv.innerHTML = `${icon} ${feedbackText}`;
+        feedbackDiv.className = `text-sm mt-2 p-2 rounded ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+        playFeedback(isCorrect);
+    }
+    
+    // Sembunyikan tombol submit
+    const submitBtn = document.getElementById("modalSubmitBtn");
+    submitBtn.style.display = "none";
+    
+    // Buat atau gunakan tombol "Lanjut ke Step Berikutnya"
+    let nextBtn = document.getElementById("nextStepBtn");
+    if (!nextBtn) {
+        nextBtn = document.createElement("button");
+        nextBtn.id = "nextStepBtn";
+        nextBtn.className = "bg-primary text-white px-4 py-2 rounded-lg mt-4";
+        document.getElementById("modalContent").appendChild(nextBtn);
+    }
+    nextBtn.innerText = "Lanjut ke Step Berikutnya";
+    nextBtn.style.display = "block";
+    nextBtn.onclick = async () => {
+        const nextStepIndex = step.stepIndex + 1;
+        const totalSteps = step.totalSteps;
+        if (nextStepIndex <= totalSteps) {
+            // Minta step berikutnya ke AI
+            const response = await fetch(`${API_BASE}/chat-ai`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+                body: JSON.stringify({
+                    messages: chatHistory,
+                    selectedOption: 'step',
+                    topic: topic,
+                    stepState: { stepIndex: nextStepIndex, totalSteps }
+                })
+            });
+            const data = await response.json();
+            if (data.type === 'step') {
+                openStepModal(data, topic);
+            } else if (data.type === 'step_complete') {
+                alert(data.message);
+                closeQuizModal();
+                addChatMessage('ai', data.message);
+                chatHistory.push({ role: 'assistant', content: data.message });
+                saveChatHistory();
+            }
+        } else {
+            alert("Selesai!");
+            closeQuizModal();
+        }
+    };
+}
+
+      // ====================== LOCALSTORAGE & INIT CHAT ======================
+        function saveChatHistory() {
+            const simplified = chatHistory.map(msg => ({ role: msg.role, content: msg.content }));
+            localStorage.setItem('chatHistory_' + currentUser._id, JSON.stringify(simplified));
+        }
+
+        function loadChatHistoryFromStorage() {
+            const saved = localStorage.getItem('chatHistory_' + currentUser._id);
+            if (saved) {
+                try {
+                    const history = JSON.parse(saved);
+                    chatHistory = history;
+                    const container = document.getElementById("chatMessages");
+                    container.innerHTML = "";
+                    history.forEach(msg => {
+                        if (msg.role === 'user') {
+                            addChatMessage('user', msg.content);
+                        } else {
+                            addChatMessage('ai', msg.content);
+                        }
+                    });
+                } catch(e) { console.error("Gagal muat riwayat:", e); }
+            } else {
+                const initialMsg = "Halo! Saya adalah AI tutor. Ada topik apa yang ingin kamu pelajari hari ini? (contoh: aljabar linear, grammar dasar, pemrograman Python)";
+                addChatMessage('ai', initialMsg);
+                chatHistory = [{ role: 'assistant', content: initialMsg }];
+                saveChatHistory();
+            }
+        }
+
+        function initChat() {
+            loadChatHistoryFromStorage();
+            document.getElementById("sendChatBtn").onclick = sendChatMessage;
+            document.getElementById("chatInput").addEventListener("keypress", (e) => { if(e.key === 'Enter') sendChatMessage(); });
+            document.getElementById("clearChatBtn").addEventListener("click", () => {
+                if(confirm("Hapus semua percakapan?")) {
+                    localStorage.removeItem('chatHistory_' + currentUser._id);
+                    document.getElementById("chatMessages").innerHTML = "";
+                    const initialMsg = "Halo! Saya adalah AI tutor. Ada topik apa yang ingin kamu pelajari hari ini?";
+                    addChatMessage('ai', initialMsg);
+                    chatHistory = [{ role: 'assistant', content: initialMsg }];
+                    saveChatHistory();
+                }
+            });
+        }
+
+        // ====================== MATERI ======================
+        async function loadMaterials() {
+            try { materials = await apiFetch("/materi"); renderHistoryList(); } catch(e) { console.error(e); }
+        }
+        function renderHistoryList() {
+            const container = document.getElementById("historyList");
+            if (!container) return;
+            if (!materials.length) { container.innerHTML = '<div class="bg-slate-100 dark:bg-slate-800/60 rounded-xl px-4 py-2 text-sm">Belum ada materi. Upload dokumen!</div>'; return; }
+            container.innerHTML = materials.map(m => `<button onclick="loadMaterialById('${m._id}')" class="flex items-center gap-2 bg-white dark:bg-slate-800 border rounded-xl px-3 py-1.5 text-sm hover:shadow"><span class="material-symbols-outlined text-base">description</span><span>${m.title.substring(0,30)}</span></button>`).join('');
+        }
+async function loadMaterialById(id) {
+  currentMaterial = materials.find(m => m._id === id);
+  if (!currentMaterial) return;
+  
+  document.getElementById("summaryText").innerHTML = currentMaterial.summary;
+  
+  // Ambil progress dari server
+  let savedAnswers = {};
+  try {
+    const res = await fetch(`${API_BASE}/quiz-progress/${id}`, {
+      headers: { 'x-auth-token': getToken() }
+    });
+    const data = await res.json();
+    savedAnswers = data.answers || {};
+  } catch(e) { console.error("Gagal load progress", e); }
+  
+  renderQuiz(currentMaterial.quiz, savedAnswers);
+  document.getElementById("resultArea").classList.remove("hidden");
+  document.getElementById("resultArea").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderQuiz(quiz, savedAnswers = {}) {
+  const container = document.getElementById("quizContainer");
+  container.innerHTML = "";
+  currentQuizAnswers = { ...savedAnswers }; // restore jawaban yang tersimpan
+  
+  quiz.forEach((q, idx) => {
+    const selected = currentQuizAnswers[idx] !== undefined ? currentQuizAnswers[idx] : null;
+    const div = document.createElement("div");
+    div.className = "border-b pb-4 mb-2";
+    div.innerHTML = `
+      <p class="font-bold mb-2">${idx+1}. ${q.text}</p>
+      <div class="space-y-1">
+        ${q.options.map((opt, optIdx) => `
+          <label class="flex items-center gap-2">
+            <input type="radio" name="q${idx}" value="${optIdx}" ${selected === optIdx ? 'checked' : ''}>
+            <span>${String.fromCharCode(65+optIdx)}. ${opt}</span>
+          </label>
+        `).join('')}
+      </div>
+      <div class="feedback-${idx}"></div>
+    `;
+    container.appendChild(div);
+    
+    const radios = div.querySelectorAll(`input[name="q${idx}"]`);
+    radios.forEach(radio => {
+      radio.addEventListener('change', async (e) => {
+        const selectedVal = parseInt(e.target.value);
+        currentQuizAnswers[idx] = selectedVal;
+        updateScorePreview();
+        
+        // Simpan progress ke server secara otomatis
+        saveQuizProgress(currentMaterial._id, currentQuizAnswers);
+        
+        // Tampilkan feedback AI (opsional)
+        const userAnswerText = q.options[selectedVal];
+        const feedback = await getAIFeedback(q.text, q.options, userAnswerText, q.correct);
+        currentQuizFeedbacks[idx] = feedback.explanation;
+        showAIFeedback(idx, feedback, false);
+        playFeedback(feedback.isCorrect);
+      });
+    });
+  });
+  updateScorePreview();
+}
+
+// Fungsi untuk menyimpan progress ke server (debounced)
+let saveTimeout;
+function saveQuizProgress(materiId, answers) {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      await fetch(`${API_BASE}/quiz-progress/${materiId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+        body: JSON.stringify({ answers })
+      });
+      console.log("Progress autosave");
+    } catch(e) { console.error("Auto save error", e); }
+  }, 1000); // delay 1 detik setelah perubahan terakhir
+}       
+        function updateScorePreview() {
+            if (currentMaterial)
+                document.getElementById("quizScore").innerText = `Menjawab: ${Object.keys(currentQuizAnswers).length}/${currentMaterial.quiz.length}`;
+        }
+async function submitQuiz() {
+    if (!currentMaterial) {
+        alert("Tidak ada materi yang dipilih.");
+        return;
+    }
+    let correct = 0;
+    const total = currentMaterial.quiz.length;
+    for (let i = 0; i < total; i++) {
+        if (currentQuizAnswers[i] === currentMaterial.quiz[i].correct) correct++;
+    }
+    const score = Math.round(correct / total * 100);
+    const answeredCount = Object.keys(currentQuizAnswers).length;
+    
+    if (answeredCount < total) {
+        if (!confirm(`Anda baru menjawab ${answeredCount}/${total} soal. Tetap kirim? Skor dihitung dari jawaban yang ada.`)) {
+            return;
+        }
+    }
+    
+    // Siapkan array feedback sesuai urutan soal
+const feedbacksArray = [];
+for (let i = 0; i < total; i++) {
+    let fb = currentQuizFeedbacks[i];
+    if (!fb || fb === "Tidak ada feedback") {
+        // Buat penjelasan sederhana namun mendalam
+        const q = currentMaterial.quiz[i];
+        const correctAnswerText = q.options[q.correct];
+        const questionText = q.text;
+        // Generate penjelasan 3-4 kalimat, tidak akademis
+        fb = `Jawaban benar: ${correctAnswerText}. ${questionText.split('?')[0]}? Kuncinya adalah memahami bahwa ${correctAnswerText.toLowerCase()} merupakan konsep inti. Dengan menguasai ini, kamu bisa menyelesaikan soal serupa dengan lebih mudah.`;
+    }
+    feedbacksArray.push(fb);
+}
+    
+    if (confirm(`Skor Anda: ${correct}/${total} (${score}%). Simpan hasil?`)) {
+        try {
+            const newResult = {
+                date: new Date(),
+                score,
+                answers: { ...currentQuizAnswers }, // atau bisa diubah jadi array jika mau
+                feedbacks: feedbacksArray
+            };
+            // Ubah answers dari object ke array agar sesuai schema
+            const answersArray = [];
+            for (let i = 0; i < total; i++) {
+                answersArray.push(currentQuizAnswers[i] !== undefined ? currentQuizAnswers[i] : -1);
+            }
+            newResult.answers = answersArray;
+            
+            const existing = currentMaterial.quizResults || [];
+            const updatedResults = [...existing, newResult];
+            
+            await fetch(`${API_BASE}/materi/${currentMaterial._id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+                body: JSON.stringify({ quizResults: updatedResults })
+            });
+            
+            // Hapus progress
+            await fetch(`${API_BASE}/quiz-progress/${currentMaterial._id}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': getToken() }
+            });
+            
+            alert("Hasil kuis tersimpan!");
+            await loadMaterials();
+            await loadAllSummaries();
+            loadStats();
+            
+            // Reset lokal
+            currentQuizAnswers = {};
+            currentQuizFeedbacks = {};
+            renderQuiz(currentMaterial.quiz, {});
+        } catch (err) {
+            alert("Gagal menyimpan: " + err.message);
+        }
+    }
+}
+        async function uploadDocument() {
+            const fileInput = document.getElementById("fileUploadInput");
+            if (!fileInput.files.length) return alert("Pilih file");
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            document.getElementById("loadingIndicator").classList.remove("hidden");
+            try {
+                const token = getToken();
+                const res = await fetch(`${API_BASE}/upload`, {
+                    method: "POST",
+                    headers: { "x-auth-token": token },
+                    body: formData
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const data = await res.json();
+                alert(data.message || "Dokumen berhasil diproses!");
+                await loadMaterials();
+                fileInput.value = "";
+                if (data.materi && data.materi._id) {
+                    loadMaterialById(data.materi._id);
+                }
+                loadStats();
+            } catch (e) {
+                alert("Gagal: " + e.message);
+            } finally {
+                document.getElementById("loadingIndicator").classList.add("hidden");
+            }
+        }
+
+        // ====================== RINGKASAN ======================
+        async function loadAllSummaries() {
+            await loadMaterials();
+            const container = document.getElementById("allSummariesContainer");
+            if (!container) return;
+            if (!materials.length) { container.innerHTML = "<p class='text-slate-500'>Belum ada materi. Silakan upload materi terlebih dahulu.</p>"; return; }
+            container.innerHTML = materials.map(m => `<div onclick="showSummaryDetail('${m._id}')" class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md cursor-pointer hover:shadow-lg transition transform hover:scale-[1.01]"><h2 class="text-xl font-bold">${m.title}</h2><p class="mt-2 text-slate-600 dark:text-slate-300">${(m.summary || "").substring(0,200)}...</p><div class="mt-4"><strong>Riwayat Kuis:</strong> ${m.quizResults?.length ? m.quizResults.map(qr => `<span class="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-sm ml-1">${qr.score}%</span>`).join('') : "Belum ada"}</div></div>`).join('');
+        }
+ async function showSummaryDetail(materiId) {
+    const materi = materials.find(m => m._id === materiId);
+    if (!materi) return;
+    currentSummaryMaterial = materi; // masih disimpan untuk keperluan lain jika ada
+    
+    document.getElementById("detailTitle").innerText = materi.title;
+    document.getElementById("detailSummary").innerHTML = materi.summary;
+    
+    // Tampilkan riwayat kuis (accordion)
+    renderQuizHistory(materi);
+    
+    document.getElementById("summaryDetailArea").classList.remove("hidden");
+    document.getElementById("summaryDetailArea").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderQuizHistory(materi) {
+    const container = document.getElementById("quizHistoryContainer");
+    if (!container) return;
+    const history = materi.quizResults || [];
+    if (history.length === 0) {
+        container.innerHTML = "<p class='text-slate-500 mt-4'>Belum ada riwayat kuis.</p>";
+        return;
+    }
+    
+    let html = `<h3 class="text-lg font-bold mt-6 mb-3">📋 Riwayat Kuis</h3>`;
+    history.forEach((result, idx) => {
+        const dateStr = new Date(result.date).toLocaleString();
+        const score = result.score;
+        const answeredCount = result.answers.filter(a => a !== -1).length;
+        const total = materi.quiz.length;
+        html += `
+            <div class="border rounded-lg mb-3 overflow-hidden">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 cursor-pointer flex justify-between items-center" onclick="toggleAccordion(${idx})">
+                    <span><strong>${dateStr}</strong> - Skor: ${score}% (${answeredCount}/${total} terjawab)</span>
+                    <span class="material-symbols-outlined" id="accordionIcon_${idx}">expand_more</span>
+                </div>
+                <div id="accordionContent_${idx}" class="hidden p-3 border-t dark:border-gray-700 space-y-3">
+                    ${materi.quiz.map((q, qIdx) => {
+                        const userAnswerIdx = result.answers[qIdx];
+                        const userAnswerText = (userAnswerIdx !== undefined && userAnswerIdx !== -1) ? q.options[userAnswerIdx] : "Tidak dijawab";
+                        const correctAnswerText = q.options[q.correct];
+                        const isCorrect = (userAnswerIdx === q.correct);
+                        const feedback = (result.feedbacks && result.feedbacks[qIdx]) ? result.feedbacks[qIdx] : generateSimpleExplanation(q.text, correctAnswerText);
+                        return `
+                            <div class="border-l-4 ${isCorrect ? 'border-green-500' : 'border-red-500'} pl-3">
+                                <p class="font-bold">${qIdx+1}. ${q.text}</p>
+                                <p class="text-sm mt-1">📌 Jawaban Anda: <span class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${userAnswerText}</span></p>
+                                <p class="text-sm">✅ Jawaban benar: ${correctAnswerText}</p>
+                                <p class="text-sm mt-1 bg-gray-50 dark:bg-gray-800 p-2 rounded">💡 ${feedback}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// Fungsi untuk membuat penjelasan sederhana jika feedback tidak tersedia
+function generateSimpleExplanation(questionText, correctAnswerText) {
+    // Ambil inti pertanyaan (hilangkan kata tanya dan tanda tanya)
+    let topic = questionText.replace(/^Apa |^Sebutkan |^Jelaskan |^Mengapa |^Bagaimana /i, '').split('?')[0];
+    return `Jawaban benar: "${correctAnswerText}". ${topic ? `Inti dari "${topic}" adalah ${correctAnswerText.toLowerCase()}. ` : ''}Dengan memahami konsep ini, kamu akan lebih mudah menjawab pertanyaan serupa. Terus berlatih!`;
+}
+
+// Fungsi toggle accordion (global)
+function toggleAccordion(index) {
+    const content = document.getElementById(`accordionContent_${index}`);
+    const icon = document.getElementById(`accordionIcon_${index}`);
+    if (content.classList.contains("hidden")) {
+        content.classList.remove("hidden");
+        icon.innerText = "expand_less";
+    } else {
+        content.classList.add("hidden");
+        icon.innerText = "expand_more";
+    }
+}
+function closeSummaryDetail() { document.getElementById("summaryDetailArea").classList.add("hidden"); }
+        
+
+        // ====================== RUANG BELAJAR ======================
+
+function initSocket() {
+    if (socket && socket.connected) return;
+    socket = io("http://localhost:3000");
+    socket.off("chat message");
+    socket.on("chat message", (msg) => {
+        if (currentRoom && msg.room === currentRoom) {
+            chatMessages.push(msg);
+            renderChat();
+        }
+    });
+    socket.on("joined-room", (roomCode) => {
+        console.log("Bergabung ke ruang:", roomCode);
+        currentRoom = roomCode;
+        loadChatHistory();
+        loadSharedDocsAndMembers();
+    });
+    // Shared document listeners
+    socket.on("room-documents-updated", (data) => {
+        if (currentRoom && data.room === currentRoom) {
+            loadSharedDocsAndMembers();
+        }
+    });
+    socket.on("room-documents-list", (docs) => {
+        renderSharedDocs(docs);
+    });
+    // Collaborative quiz listeners
+    socket.on("shared-quiz-started", (data) => {
+        if (data.materiId && currentRoom) {
+            const materi = materials.find(m => m._id === data.materiId);
+            if (materi) {
+                alert(`Kuis "${materi.title}" dimulai oleh ${data.startedBy || 'anggota ruang'}!`);
+                openVirtualQuizWithMateri(materi);
+            }
+        }
+    });
+    socket.on("member-answered", (data) => {
+        showMemberAnswerNotification(data);
+    });
+    // Online users listener for members list
+    socket.on("update online users", (users) => {
+        renderMembers(users);
+    });
+    // Emit user online after connecting
+    if (currentUser && currentUser.name) {
+        socket.emit('user online', currentUser.name);
+    }
+}
+
+function renderMembers(users) {
+    const container = document.getElementById('membersContainer');
+    if (!container) return;
+    const uniqueUsers = [...new Set(users)];
+    if (!uniqueUsers.length) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = uniqueUsers.map(name => {
+        if (name === currentUser.name) return '';
+        return `
+        <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span class="material-symbols-outlined text-sm text-green-500">person</span>
+            <span>${name}</span>
+        </div>`;
+    }).join('');
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    alert("Kode ruang disalin: " + text);
+}
+
+async function loadChatHistory() {
+    if (!currentRoom) {
+        const container = document.getElementById("chatMessagesContainer");
+        if (container) container.innerHTML = '<div class="text-center text-slate-400">Buat atau gabung ruang terlebih dahulu.</div>';
+        chatMessages = [];
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE}/chat/history?room=${encodeURIComponent(currentRoom)}`, {
+            headers: { "x-auth-token": getToken() }
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        chatMessages = data;
+        renderChat();
+    } catch(e) { console.error("Load chat history error:", e); }
+}
+
+function renderChat() {
+    const container = document.getElementById("chatMessagesContainer");
+    if (!container) return;
+    if (!chatMessages.length) {
+        container.innerHTML = '<div class="text-center text-slate-400">Belum ada pesan. Mulai diskusi!</div>';
+        return;
+    }
+    const userName = currentUser?.name || 'Pengguna';
+    container.innerHTML = chatMessages.map(msg => `
+        <div class="flex ${msg.sender === userName ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-xs p-2 rounded-lg ${msg.sender === userName ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700'}">
+                <strong>${msg.sender}</strong>: ${msg.text}
+            </div>
+        </div>
+    `).join('');
+    container.scrollTop = container.scrollHeight;
+}
+
+function sendMessageDynamic() {
+    const input = document.getElementById("chatMessageInput");
+    const text = input.value.trim();
+    if (!text) return;
+    if (!socket || !currentRoom) {
+        alert("Anda belum bergabung ke ruang manapun. Buat atau gabung ruang dulu.");
+        return;
+    }
+    socket.emit("chat message", { sender: currentUser.name, text, room: currentRoom });
+    input.value = "";
+}
+
+// Fungsi untuk membuat ruang baru
+function createRoom() {
+    const newRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    if (socket) {
+        socket.emit('join-room', newRoomCode);
+        document.getElementById("roomInfo").innerHTML = `
+            Ruang aktif: <strong>${newRoomCode}</strong> 
+            <button onclick="copyToClipboard('${newRoomCode}')" class="ml-2 text-primary text-xs underline">Salin kode</button>
+        `;
+        document.getElementById("inviteCodeInput").value = "";
+    } else {
+        alert("Koneksi socket belum siap. Coba buka halaman ulang.");
+    }
+}
+
+// Fungsi untuk bergabung ke ruang
+function joinRoom() {
+    const roomCode = document.getElementById("inviteCodeInput").value.trim().toUpperCase();
+    if (!roomCode) return alert("Masukkan kode undangan.");
+    if (socket) {
+        socket.emit('join-room', roomCode);
+        document.getElementById("roomInfo").innerHTML = `Bergabung ke ruang: <strong>${roomCode}</strong>`;
+        document.getElementById("inviteCodeInput").value = "";
+    } else {
+        alert("Koneksi socket belum siap.");
+    }
+}
+
+// Override tombol undang teman
+function inviteFriendDynamic() {
+    if (!currentRoom) {
+        alert("Anda belum berada di ruang manapun. Buat ruang terlebih dahulu.");
+        return;
+    }
+    prompt("Bagikan kode ini ke teman Anda:", currentRoom);
+}
+
+// Fungsi leaveRoom (keluar ruang dan kembali ke dashboard)
+function leaveRoom() {
+    if (confirm("Keluar ruangan?")) {
+        if (socket && currentRoom) {
+            // optional: emit leave room event (belum di backend)
+            currentRoom = null;
+        }
+        showDashboard();
+    }
+}
+
+// Panggil di showRuangBelajar untuk memastikan socket terinisiasi
+const originalShowRuangBelajar = showRuangBelajar;
+showRuangBelajar = function() {
+    originalShowRuangBelajar();
+    // Inisialisasi socket jika belum
+    initSocket();
+    // Set currentRoom mungkin null, tampilkan pesan default
+    if (!currentRoom) {
+        const container = document.getElementById("chatMessagesContainer");
+        if (container) container.innerHTML = '<div class="text-center text-slate-400">Buat atau gabung ruang terlebih dahulu.</div>';
+    }
+};
+        async function uploadSharedDocument() {
+            const input = document.createElement('input'); 
+            input.type = 'file'; 
+            input.accept = '.pdf,.doc,.docx,.txt,.md';
+            input.onchange = async (e) => {
+                const file = e.target.files[0]; 
+                if (!file) return;
+                if (!currentRoom) { alert("Anda harus bergabung ke ruang terlebih dahulu."); return; }
+                const formData = new FormData(); 
+                formData.append('file', file);
+                formData.append('roomCode', currentRoom);
+                try {
+                    const token = getToken();
+                    const res = await fetch(`${API_BASE}/room-document/upload`, { 
+                        method: 'POST', 
+                        headers: { 'x-auth-token': token }, 
+                        body: formData 
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+                    const data = await res.json();
+                    alert(data.message || "Dokumen berhasil diproses & dibagikan!");
+                    await loadMaterials(); 
+                    await loadSharedDocsAndMembers();
+                    // Notify room about new document
+                    if (socket) socket.emit('share-document', { room: currentRoom, materiId: data.materi?._id, title: data.materi?.title });
+                } catch(err) { 
+                    alert('Gagal upload: ' + err.message); 
+                }
+            };
+            input.click();
+        }
+        async function loadSharedDocsAndMembers() {
+            if (!currentRoom) return;
+            try {
+                const res = await fetch(`${API_BASE}/room-documents?room=${encodeURIComponent(currentRoom)}`, {
+                    headers: { 'x-auth-token': getToken() }
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const docs = await res.json();
+                renderSharedDocs(docs);
+            } catch(e) { console.error('Gagal load dokumen bersama:', e); }
+            // Anggota aktif dari socket onlineUsers
+            try {
+                if (socket) socket.emit('request-online-users');
+            } catch(e) {}
+        }
+        function renderSharedDocs(docs) {
+            const container = document.getElementById('documentsContainer');
+            if (!container) return;
+            if (!docs.length) { container.innerHTML = '<div class="text-xs text-slate-500 text-center">Belum ada dokumen</div>'; return; }
+            container.innerHTML = docs.map(doc => `
+                <div class="bg-white dark:bg-slate-800 border rounded-lg p-2 flex items-center justify-between cursor-pointer hover:shadow" onclick="startSharedQuiz('${doc.materiId}')">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="material-symbols-outlined text-primary text-sm">description</span>
+                        <span class="text-xs font-medium truncate">${doc.title}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">${doc.sharedByName || 'Anggota'}</span>
+                </div>
+            `).join('');
+        }
+        function startSharedQuiz(materiId) {
+            const materi = materials.find(m => m._id === materiId);
+            if (!materi) { alert('Materi belum tersedia di lokal. Tunggu sebentar...'); return; }
+            if (socket && currentRoom) {
+                socket.emit('start-shared-quiz', { room: currentRoom, materiId, startedBy: currentUser.name });
+            }
+            openVirtualQuizWithMateri(materi);
+        }
+        function openVirtualQuizWithMateri(materi) {
+            currentVirtualMaterial = materi;
+            virtualQuizAnswers = {};
+            openVirtualQuiz(null, materi._id);
+        }
+        function showMemberAnswerNotification(data) {
+            // Tampilkan notifikasi ringan di UI
+            const container = document.getElementById('virtualQuizContent');
+            if (!container) return;
+            const notifDiv = document.createElement('div');
+            notifDiv.className = 'bg-blue-50 text-blue-700 text-xs p-2 rounded border border-blue-200 mb-2';
+            notifDiv.innerHTML = `🙋 ${data.memberName || 'Anggota'} menjawab soal ${data.questionIndex + 1}${data.isCorrect ? ' ✅' : ''}`;
+            container.appendChild(notifDiv);
+            setTimeout(() => notifDiv.remove(), 5000);
+        }
+
+        // ====================== VIRTUAL QUIZ ======================
+// ====================== VIRTUAL QUIZ (dengan dukungan undangan) ======================
+function openVirtualQuiz(jitsiRoomFromUrl = null, materiIdFromUrl = null) {
+    const modal = document.getElementById("virtualQuizModal");
+    modal.classList.remove("hidden");
+    const select = document.getElementById("quizMaterialSelect");
+    
+    // Tentukan room Jitsi
+    let jitsiRoom;
+    let selectedMateriId;
+    if (jitsiRoomFromUrl) {
+        jitsiRoom = jitsiRoomFromUrl;
+        selectedMateriId = materiIdFromUrl;
+    } else {
+        jitsiRoom = `BelajarYuk_${Date.now()}`;
+        selectedMateriId = select.value;
+        // Perbarui URL agar dapat di-share
+        const newUrl = `${window.location.pathname}?jitsiRoom=${jitsiRoom}&materiId=${selectedMateriId}`;
+        window.history.pushState({}, '', newUrl);
+    }
+    
+    // Tampilkan link undangan di dalam modal
+    let inviteInfo = document.getElementById("jitsiInviteInfo");
+    if (!inviteInfo) {
+        inviteInfo = document.createElement("div");
+        inviteInfo.id = "jitsiInviteInfo";
+        inviteInfo.className = "text-xs text-center mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded";
+        const videoCallDiv = document.querySelector("#virtualQuizModal .flex-1:first-child");
+        if (videoCallDiv) videoCallDiv.appendChild(inviteInfo);
+    }
+    const inviteLink = `${window.location.origin}${window.location.pathname}?jitsiRoom=${jitsiRoom}&materiId=${selectedMateriId}`;
+    inviteInfo.innerHTML = `🔗 Link undangan: <a href="${inviteLink}" target="_blank" class="text-primary underline">${inviteLink}</a> <button onclick="copyToClipboard('${inviteLink}')" class="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded">Salin</button>`;
+    
+    // Load materi
+    select.innerHTML = '<option value="">Pilih materi...</option>';
+    materials.forEach(m => { const opt = document.createElement('option'); opt.value = m._id; opt.textContent = m.title; select.appendChild(opt); });
+    if (selectedMateriId) {
+        select.value = selectedMateriId;
+        const materi = materials.find(m => m._id === selectedMateriId);
+        if (materi) {
+            currentVirtualMaterial = materi;
+            virtualQuizAnswers = {};
+            renderVirtualQuiz(materi.quiz);
+            document.getElementById("submitVirtualQuizBtn").disabled = false;
+        }
+    }
+    select.onchange = (e) => {
+        const id = e.target.value; if (!id) return;
+        const materi = materials.find(m => m._id === id); if (!materi) return;
+        currentVirtualMaterial = materi; virtualQuizAnswers = {};
+        renderVirtualQuiz(materi.quiz);
+        document.getElementById("submitVirtualQuizBtn").disabled = false;
+        // Update URL dengan materiId baru
+        const url = new URL(window.location);
+        url.searchParams.set('materiId', id);
+        window.history.pushState({}, '', url);
+    };
+    
+    // Inisialisasi Jitsi dengan room yang ditentukan
+    const container = document.getElementById("jitsiContainer");
+    if (container && typeof JitsiMeetExternalAPI !== 'undefined') {
+        if (jitsiApi) { jitsiApi.executeCommand('hangup'); }
+        jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
+            roomName: jitsiRoom,
+            parentNode: container,
+            width: '100%',
+            height: '100%',
+            configOverwrite: { startWithAudioMuted: true },
+            interfaceConfigOverwrite: { TOOLBAR_BUTTONS: ['microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'recording', 'livestreaming', 'etherpad', 'sharedvideo', 'security', 'settings', 'raisehand', 'videoquality', 'filmstrip', 'feedback', 'tileview', 'download', 'help', 'mute-everyone', 'invite'] }
+        });
+    }
+}
+        function renderVirtualQuiz(quiz) {
+            const container = document.getElementById("virtualQuizContent"); container.innerHTML = "";
+            quiz.forEach((q, idx) => {
+                const div = document.createElement("div"); div.className = "border-b pb-3 mb-3";
+                div.innerHTML = `<p class="font-bold">${idx+1}. ${q.text}</p><div class="space-y-1 mt-1">${q.options.map((opt, optIdx) => `<label class="flex items-center gap-2"><input type="radio" name="vq${idx}" value="${optIdx}"><span>${String.fromCharCode(65+optIdx)}. ${opt}</span></label>`).join('')}</div>`;
+                container.appendChild(div);
+                div.querySelectorAll(`input[name="vq${idx}"]`).forEach(radio => radio.addEventListener('change', (e) => {
+                    const val = parseInt(e.target.value);
+                    virtualQuizAnswers[idx] = val;
+                    const isCorrect = (val === q.correct);
+                    playFeedback(isCorrect);
+                    // Emit to room for real-time collaboration
+                    if (socket && currentRoom) {
+                        socket.emit('shared-quiz-answer', { room: currentRoom, materiId: currentVirtualMaterial._id, questionIndex: idx, memberName: currentUser.name, isCorrect });
+                    }
+                }));
+            });
+        }
+        async function submitVirtualQuiz() {
+            if (!currentVirtualMaterial) return alert("Pilih materi dulu");
+            let correct = 0; currentVirtualMaterial.quiz.forEach((q,i) => { if(virtualQuizAnswers[i] === q.correct) correct++; });
+            const score = Math.round(correct/currentVirtualMaterial.quiz.length*100);
+            const allAnswered = Object.keys(virtualQuizAnswers).length === currentVirtualMaterial.quiz.length;
+            playFeedback(allAnswered ? (correct === currentVirtualMaterial.quiz.length) : false);
+            alert(`Skor Anda: ${correct}/${currentVirtualMaterial.quiz.length} (${score}%)`);
+            const quizResults = [...(currentVirtualMaterial.quizResults || []), { date: new Date(), score, answers: virtualQuizAnswers }];
+            await apiFetch(`/materi/${currentVirtualMaterial._id}`, { method: "PUT", body: JSON.stringify({ quizResults }) });
+            await loadMaterials(); alert("Skor tersimpan.");
+        }
+        function closeVirtualQuiz() {
+            document.getElementById("virtualQuizModal").classList.add("hidden");
+            if (jitsiApi) jitsiApi.executeCommand('hangup');
+        }
+
+        // ====================== PROFIL ======================
+        async function loadProfile() {
+    try {
+        const profile = await apiFetch("/profile");
+        
+        // Fungsi bantu untuk mengisi value dengan aman
+        const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value !== undefined ? value : '';
+        };
+        setValue("profileName", currentUser.name);
+        setValue("profileEmail", currentUser.email);
+        setValue("profileNim", profile.nim);
+        setValue("profileUniv", profile.university);
+        
+        const darkToggle = document.getElementById("darkModeToggle");
+        if (darkToggle) darkToggle.checked = profile.preferences?.darkMode || false;
+        const notifQuiz = document.getElementById("notifQuiz");
+        if (notifQuiz) notifQuiz.checked = profile.preferences?.notifQuiz !== false;
+        const notifSound = document.getElementById("notifSound");
+        if (notifSound) notifSound.checked = profile.preferences?.notifSound || false;
+        
+        let avatarUrl = "https://via.placeholder.com/150";
+        if (profile.avatar && profile.avatar.trim() !== "") avatarUrl = `http://localhost:3000${profile.avatar}`;
+        const profileAvatar = document.getElementById("profileAvatar");
+        if (profileAvatar) profileAvatar.src = avatarUrl;
+        const sidebarAvatar = document.getElementById("sidebarAvatar");
+        if (sidebarAvatar) sidebarAvatar.src = avatarUrl;
+        
+        if (profile.preferences?.darkMode) document.documentElement.classList.add("dark");
+        else document.documentElement.classList.remove("dark");
+        
+        const sidebarName = document.getElementById("sidebarName");
+        if (sidebarName) sidebarName.innerText = currentUser.name;
+        const profileDisplay = document.getElementById("profileDisplayName");
+        if (profileDisplay) profileDisplay.innerText = currentUser.name;
+        
+        const materiCount = document.getElementById("profileMateriCount");
+        if (materiCount) materiCount.innerText = materials.length;
+        let totalQuiz = materials.reduce((acc,m) => acc + (m.quizResults?.length || 0), 0);
+        const quizCount = document.getElementById("profileQuizCount");
+        if (quizCount) quizCount.innerText = totalQuiz;
+        
+        if (profile.preferences?.notifQuiz !== false) {
+            requestNotificationPermission();
+            startQuizReminderInterval();
+        }
+    } catch (err) {
+        console.error("Error loadProfile:", err);
+        // Tampilkan pesan error di area profil
+        const profilDiv = document.getElementById("profil-content");
+        if (profilDiv) profilDiv.innerHTML = '<div class="text-red-500 p-4">Gagal memuat profil. Periksa koneksi atau login ulang.</div>';
+    }
+}
+        async function updateProfile() {
+            const name = document.getElementById("profileName").value;
+            const nim = document.getElementById("profileNim").value;
+            const university = document.getElementById("profileUniv").value;
+            const darkMode = document.getElementById("darkModeToggle").checked;
+            const notifQuiz = document.getElementById("notifQuiz").checked;
+            const notifSound = document.getElementById("notifSound").checked;
+            const preferences = { darkMode, notifQuiz, notifSound };
+            try {
+                const response = await apiFetch("/profile", { method: "PUT", body: JSON.stringify({ name, nim, university, preferences }) });
+                currentUser.name = name;
+                localStorage.setItem("user", JSON.stringify(currentUser));
+                if (response.token) localStorage.setItem("token", response.token);
+                if (darkMode) document.documentElement.classList.add("dark");
+                else document.documentElement.classList.remove("dark");
+                if (notifQuiz) { requestNotificationPermission(); startQuizReminderInterval(); }
+                else if (notifInterval) clearInterval(notifInterval);
+                alert("Profil tersimpan");
+            } catch(e) { alert("Gagal simpan: " + e.message); }
+        }
+        async function uploadProfilePhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/jpeg,image/png,image/jpg';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) { alert('Hanya file gambar'); return; }
+                if (file.size > 2*1024*1024) { alert('Maksimal 2MB'); return; }
+                const formData = new FormData(); formData.append('avatar', file);
+                try {
+                    const token = getToken();
+                    const res = await fetch(`${API_BASE}/profile/avatar`, { method: 'POST', headers: { 'x-auth-token': token }, body: formData });
+                    if (!res.ok) throw new Error(await res.text());
+                    const data = await res.json();
+                    document.getElementById("profileAvatar").src = data.avatarUrl;
+                    document.getElementById("sidebarAvatar").src = data.avatarUrl;
+                    alert("Foto profil berhasil diubah");
+                } catch (err) { alert("Gagal upload foto: " + err.message); }
+            };
+            input.click();
+        }
+
+        // ====================== EVENT LISTENER ======================
+        window.onload = async () => {
+            await loadMaterials();
+            loadStats();
+            showDashboard();
+            initChat();
+            // Cek parameter URL untuk membuka virtual quiz otomatis
+            const urlParams = new URLSearchParams(window.location.search);
+            const jitsiRoomParam = urlParams.get('jitsiRoom');
+            const materiIdParam = urlParams.get('materiId');
+            if (jitsiRoomParam) {
+             // Tunggu materials selesai dimuat
+                const waitForMaterials = setInterval(() => {
+                    if (materials.length > 0) {
+                     clearInterval(waitForMaterials);
+                     openVirtualQuiz(jitsiRoomParam, materiIdParam);
+                    }
+                }, 500);
+            }
+            // Tombol ruang belajar
+            const createBtn = document.getElementById("createRoomBtn");
+             if (createBtn) createBtn.addEventListener("click", createRoom);
+            const joinBtn = document.getElementById("joinRoomBtn");
+             if (joinBtn) joinBtn.addEventListener("click", joinRoom);
+            document.getElementById("processDocBtn").addEventListener("click", uploadDocument);
+            document.getElementById("submitQuizBtn").addEventListener("click", submitQuiz);
+            document.getElementById("resetQuizBtn").addEventListener("click", () => { if(currentMaterial){ currentQuizAnswers={}; renderQuiz(currentMaterial.quiz,{}); } });
+            document.getElementById("saveBtn").addEventListener("click", updateProfile);
+            document.getElementById("cancelBtn").addEventListener("click", () => loadProfile());
+            document.getElementById("changePhotoBtn").addEventListener("click", uploadProfilePhoto);
+            document.getElementById("darkModeToggle").addEventListener("change", (e) => { if(e.target.checked) document.documentElement.classList.add("dark"); else document.documentElement.classList.remove("dark"); });
+            document.getElementById("submitVirtualQuizBtn").addEventListener("click", submitVirtualQuiz);
+        };
+    </script>
+</body>
+</html>
