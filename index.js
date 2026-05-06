@@ -30,10 +30,8 @@ if (!dbURI) {
   console.error('❌ MONGODB_URI environment variable not set');
   process.exit(1);
 }
-mongoose.connect(dbURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
+mongoose.connect(dbURI)
+
 .then(() => console.log('✅ Terhubung ke MongoDB Atlas'))
 .catch(err => console.log('❌ DB Error:', err));
 
