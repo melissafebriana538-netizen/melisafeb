@@ -14,31 +14,50 @@ const mammoth = require('mammoth');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
-});
 
-// MIDDLEWARE
-app.use(cors({
-  origin: 'https://belajaryuk.up.railway.app', // Izinkan hanya frontend yang baru
+// ====================== KONFIGURASI CORS ======================
+const allowedOrigin = process.env.FRONTEND_URL || 'https://belajaryuk.up.railway.app';
+const corsOptions = {
+  origin: allowedOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token']
-}));
-app.use(express.static(path.join(__dirname, 'FRONTEND')));
+};
+
+// Terapkan CORS ke semua route HTTP
+app.use(cors(corsOptions));
+// Tangani preflight request (OPTIONS)
+app.options('*', cors(corsOptions));
+
+// ====================== SOCKET.IO DENGAN CORS ======================
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// ====================== MIDDLEWARE ======================
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'FRONTEND')));
 app.use('/uploads', express.static('uploads'));
 
-// KONEKSI DATABASE
+// ====================== JWT SECRET ======================
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_development';
+if (JWT_SECRET === 'fallback_secret_development') {
+  console.warn('⚠️ WARNING: Gunakan JWT_SECRET environment variable di production');
+}
+
+// ====================== KONEKSI DATABASE ======================
 const dbURI = process.env.MONGODB_URI;
 if (!dbURI) {
   console.error('❌ MONGODB_URI environment variable not set');
   process.exit(1);
 }
 mongoose.connect(dbURI)
-
-.then(() => console.log('✅ Terhubung ke MongoDB Atlas'))
-.catch(err => console.log('❌ DB Error:', err));
+  .then(() => console.log('✅ Terhubung ke MongoDB Atlas'))
+  .catch(err => console.log('❌ DB Error:', err));
 
 // ====================== SCHEMA ======================
 const UserSchema = new mongoose.Schema({
@@ -113,12 +132,12 @@ const ChatSchema = new mongoose.Schema({
 const Chat = mongoose.model('Chat', ChatSchema);
 const RoomDocument = require('./models/roomDocument');
 
-// VERIFY TOKEN
+// ====================== VERIFY TOKEN ======================
 const verifyToken = (req, res, next) => {
   const token = req.header('x-auth-token');
   if (!token) return res.status(401).json({ message: 'Akses ditolak' });
   try {
-    const decoded = jwt.verify(token, 'SECRET_KEY');
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
@@ -231,9 +250,10 @@ app.post('/api/register', async (req, res) => {
     const userName = name && name.trim() ? name : email.split('@')[0];
     const userBaru = new User({ email, password: hashedPassword, name: userName });
     await userBaru.save();
-    const token = jwt.sign({ userId: userBaru._id, email: userBaru.email, name: userBaru.name }, 'SECRET_KEY', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: userBaru._id, email: userBaru.email, name: userBaru.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ message: 'Registrasi berhasil', token, user: { email: userBaru.email, name: userBaru.name } });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Terjadi error', error: error.message });
   }
 });
@@ -246,9 +266,10 @@ app.post('/api/login', async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User tidak ditemukan' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Password salah' });
-    const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, 'SECRET_KEY', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ message: 'Login berhasil', token, user: { email: user.email, name: user.name } });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Terjadi error', error: error.message });
   }
 });
@@ -519,22 +540,12 @@ Hanya output JSON, tidak ada teks lain.`;
 - JANGAN berikan penjelasan apapun.
 - JANGAN tawarkan pilihan lagi.
 - LANGSUNG buat 5 soal pilihan ganda tentang "${topic}".
-- Setiap soal harus memiliki 4 opsi (A,B,C,D) dan satu jawaban benar (indeks 0-3).
-- Pastikan soal dan opsi relevan dengan topik "${topic}".
-- Output HARUS JSON dengan format:
-{
-  "type": "quiz",
-  "questions": [
-    { "text": "Soal 1", "options": ["A1","B1","C1","D1"], "correct": 0 },
-    ...
-  ],
-  "topic": "${topic}"
-}
-HANYA JSON, TIDAK ADA TEKS LAIN.`;
+- Setiap soal harus memiliki 4 opsi (A,B,C,D) yg benar, indeks 0-3.
+- Output HARUS JSON: { "type": "quiz", "questions": [...], "topic": "${topic}" } HANYA JSON.`;
     } 
     else if (lastUserMsg2 && lastUserMsg2.content.toLowerCase().startsWith('pilih:')) {
       const subtopicName = lastUserMsg2.content.replace(/^pilih:\s*/i, '').trim();
-      userPrompt = `User memilih subtopik "${subtopicName}". Berikan penjelasan mendalam dan LANGSUNG berikan opsi Quiz dan Step (type "explanation_with_options").`;
+      userPrompt = `User memilih subtopik "${subtopicName}". Berikan penjelasan mendalam & langsung opsi Quiz dan Step (type "explanation_with_options").`;
     } 
     else {
       userPrompt = lastUserMsg2 ? lastUserMsg2.content : "Halo";
@@ -564,17 +575,7 @@ HANYA JSON, TIDAK ADA TEKS LAIN.`;
 
     if (selectedOption === 'quiz' && (parsed.type !== 'quiz' || !parsed.questions || parsed.questions.length === 0)) {
       console.warn("⚠️ AI gagal menghasilkan quiz, gunakan fallback manual");
-      let quizTopic = topic;
-      if (!quizTopic || quizTopic === '') {
-        const lastUser = messages.filter(m => m.role === 'user').pop();
-        if (lastUser && lastUser.content.toLowerCase().startsWith('pilih:')) {
-          quizTopic = lastUser.content.replace(/^pilih:\s*/i, '').trim();
-        } else if (messages.length >= 2) {
-          const prevMsg = messages.slice(-2).find(m => m.role === 'user' && !m.content.toLowerCase().startsWith('pilih:'));
-          if (prevMsg) quizTopic = prevMsg.content.substring(0, 50);
-        }
-        if (!quizTopic) quizTopic = 'topik ini';
-      }
+      let quizTopic = topic || 'topik';
       parsed = {
         type: 'quiz',
         questions: [
@@ -593,13 +594,6 @@ HANYA JSON, TIDAK ADA TEKS LAIN.`;
     console.error("❌ AI Error:", err.message);
     if (selectedOption === 'quiz') {
       let quizTopic = topic || 'topik';
-      if (!quizTopic || quizTopic === '') {
-        const lastUser = messages.filter(m => m.role === 'user').pop();
-        if (lastUser && lastUser.content.toLowerCase().startsWith('pilih:')) {
-          quizTopic = lastUser.content.replace(/^pilih:\s*/i, '').trim();
-        }
-        if (!quizTopic) quizTopic = 'topik';
-      }
       res.json({
         type: 'quiz',
         questions: [
@@ -612,7 +606,7 @@ HANYA JSON, TIDAK ADA TEKS LAIN.`;
         topic: quizTopic
       });
     } else {
-      res.status(500).json({ type: 'text', content: 'AI sedang sibuk, coba lagi.' });
+      res.status(500).json({ type: 'text', content: 'Maaf, AI sedang sibuk. Coba lagi nanti.' });
     }
   }
 });
@@ -658,7 +652,7 @@ app.put('/api/profile', verifyToken, async (req, res) => {
     if (university !== undefined) user.university = university;
     if (preferences) user.preferences = { ...user.preferences, ...preferences };
     await user.save();
-    const newToken = jwt.sign({ userId: user._id, email: user.email, name: user.name }, 'SECRET_KEY', { expiresIn: '7d' });
+    const newToken = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ message: 'Profil diperbarui', token: newToken, user: { email: user.email, name: user.name } });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -670,13 +664,14 @@ app.post('/api/profile/avatar', verifyToken, uploadAvatar.single('avatar'), asyn
   const avatarPath = `/uploads/avatars/${req.file.filename}`;
   try {
     await User.findByIdAndUpdate(req.user.userId, { avatar: avatarPath });
-    res.json({ avatarUrl: `https://belajaryuk.up.railway.app/${avatarPath}` });
+    const baseUrl = allowedOrigin; // atau process.env.FRONTEND_URL
+    res.json({ avatarUrl: `${baseUrl}${avatarPath}` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ====================== CHAT HISTORY (DENGAN ROOM) ======================
+// ====================== CHAT HISTORY ======================
 app.get('/api/chat/history', verifyToken, async (req, res) => {
   try {
     const room = req.query.room || 'general';
@@ -769,7 +764,6 @@ app.post('/api/room-document/upload', verifyToken, upload.single('file'), async 
       quizResults: []
     });
     await newMateri.save();
-    // Auto-share to room if roomCode provided
     if (roomCode) {
       const roomDoc = new RoomDocument({
         roomCode,
@@ -815,7 +809,7 @@ app.post('/api/room-document/upload', verifyToken, upload.single('file'), async 
   }
 });
 
-// ====================== SOCKET.IO (DENGAN PRIVATE ROOM) ======================
+// ====================== SOCKET.IO (PRIVATE ROOM) ======================
 let onlineUsers = {};
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -825,33 +819,27 @@ io.on('connection', (socket) => {
     io.emit('update online users', Object.values(onlineUsers));
   });
 
-  // Event untuk bergabung ke room tertentu (private room)
   socket.on('join-room', (roomCode) => {
-    if (socket.room) {
-      socket.leave(socket.room);
-    }
+    if (socket.room) socket.leave(socket.room);
     socket.join(roomCode);
     socket.room = roomCode;
     console.log(`Socket ${socket.id} joined room ${roomCode}`);
     socket.emit('joined-room', roomCode);
   });
 
-  // Event chat message dikirim ke room yang sudah disimpan
   socket.on('chat message', async (msg) => {
     try {
       const room = socket.room || 'general';
-      const newMsg = new Chat({ room: room, sender: msg.sender, text: msg.text });
+      const newMsg = new Chat({ room, sender: msg.sender, text: msg.text });
       await newMsg.save();
       io.to(room).emit('chat message', newMsg);
     } catch (err) { console.error(err); }
   });
 
-  // Shared document events
   socket.on('share-document', async (data) => {
     try {
       const room = socket.room || data.roomCode || 'general';
-      const { materiId, title, source, sharedByName } = data;
-      io.to(room).emit('room-documents-updated', { materiId, title, source, sharedByName, room });
+      io.to(room).emit('room-documents-updated', { ...data, room });
     } catch (err) { console.error(err); }
   });
 
@@ -863,7 +851,6 @@ io.on('connection', (socket) => {
     } catch (err) { console.error(err); }
   });
 
-  // Collaborative quiz events
   socket.on('start-shared-quiz', (data) => {
     const room = socket.room || data.roomCode || 'general';
     io.to(room).emit('shared-quiz-started', data);
@@ -888,4 +875,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Server jalan di port ${PORT}`);
+  console.log(`✅ CORS diizinkan untuk origin: ${allowedOrigin}`);
 });
