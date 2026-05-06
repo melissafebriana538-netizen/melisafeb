@@ -54,7 +54,7 @@
     </div>
 
     <script>
-        const API = 'http://sinauYuk.com/api';
+        const API = 'https://poetic-reverence-production-f21c.up.railway.app/api';
 
         async function registerUser() {
             const name = document.getElementById('regName').value.trim();
@@ -96,7 +96,7 @@
                     alert(data.message || 'Registrasi gagal');
                 }
             } catch (err) {
-                alert('Error: Pastikan backend berjalan di http://sinauYuk.com (port 80) dan XAMPP/Node.js aktif.');
+                alert('Error: Pastikan backend berjalan di https://poetic-reverence-production-f21c.up.railway.app/(port 80) dan XAMPP/Node.js aktif.');
             }
         }
     </script>
