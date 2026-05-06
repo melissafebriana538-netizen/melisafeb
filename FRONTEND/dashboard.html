@@ -329,7 +329,7 @@
 
     <script>
         // ====================== KONFIGURASI ======================
-        const API_BASE = "http://localhost:3000/api";
+        const API_BASE = "https://poetic-reverence-production-f21c.up.railway.app/api";
         
         function getToken() {
             return localStorage.getItem("token");
@@ -1296,7 +1296,7 @@ function closeSummaryDetail() { document.getElementById("summaryDetailArea").cla
 
 function initSocket() {
     if (socket && socket.connected) return;
-    socket = io("http://localhost:3000");
+    socket = io();
     socket.off("chat message");
     socket.on("chat message", (msg) => {
         if (currentRoom && msg.room === currentRoom) {
@@ -1686,7 +1686,7 @@ function openVirtualQuiz(jitsiRoomFromUrl = null, materiIdFromUrl = null) {
         if (notifSound) notifSound.checked = profile.preferences?.notifSound || false;
         
         let avatarUrl = "https://via.placeholder.com/150";
-        if (profile.avatar && profile.avatar.trim() !== "") avatarUrl = `http://localhost:3000${profile.avatar}`;
+        if (profile.avatar && profile.avatar.trim() !== "") avatarUrl = `https://poetic-reverence-production-f21c.up.railway.app/${profile.avatar}`;
         const profileAvatar = document.getElementById("profileAvatar");
         if (profileAvatar) profileAvatar.src = avatarUrl;
         const sidebarAvatar = document.getElementById("sidebarAvatar");
