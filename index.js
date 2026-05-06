@@ -20,10 +20,7 @@ const io = new Server(server, {
 
 // MIDDLEWARE
 app.use(cors({
-  origin: [
-    'https://belajaryuk.up.railway.app',
-    'https://poetic-reverence-production-f21c.up.railway.app'
-  ],
+  origin: 'https://belajaryuk.up.railway.app', // Izinkan hanya frontend yang baru
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token']
