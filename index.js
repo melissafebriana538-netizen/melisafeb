@@ -665,7 +665,7 @@ app.post('/api/profile/avatar', verifyToken, uploadAvatar.single('avatar'), asyn
   const avatarPath = `/uploads/avatars/${req.file.filename}`;
   try {
     await User.findByIdAndUpdate(req.user.userId, { avatar: avatarPath });
-    res.json({ avatarUrl: `https://poetic-reverence-production-f21c.up.railway.app/${avatarPath}` });
+    res.json({ avatarUrl: `https://belajaryuk.up.railway.app/${avatarPath}` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
