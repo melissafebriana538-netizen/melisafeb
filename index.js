@@ -19,7 +19,15 @@ const io = new Server(server, {
 });
 
 // MIDDLEWARE
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://belajaryuk.up.railway.app',
+    'https://poetic-reverence-production-f21c.up.railway.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token']
+}));
 app.use(express.static(path.join(__dirname, 'FRONTEND')));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
