@@ -20,7 +20,7 @@ const io = new Server(server, {
 
 // MIDDLEWARE
 app.use(cors({
-    origin: "https://poetic-reverence-production-6f1d.up.railway.app"
+    origin: "https://belajaryuk-production.up.railway.app/"
 }));
 app.use(express.static(path.join(__dirname, 'FRONTEND')));
 app.use(express.json());
@@ -666,7 +666,7 @@ app.post('/api/profile/avatar', verifyToken, uploadAvatar.single('avatar'), asyn
   const avatarPath = `/uploads/avatars/${req.file.filename}`;
   try {
     await User.findByIdAndUpdate(req.user.userId, { avatar: avatarPath });
-    res.json({ avatarUrl: `poetic-reverence-production-6f1d.up.railway.app/${avatarPath}` });
+    res.json({ avatarUrl: `https://belajaryuk-production.up.railway.app/${avatarPath}` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

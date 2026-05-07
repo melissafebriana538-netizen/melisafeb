@@ -45,9 +45,7 @@
     </div>
 
     <script>
-        // Gunakan domain yang sama dengan tempat frontend diakses (sinauYuk.com)
-        // Pastikan backend berjalan di port 3000 dan Apache/Laragon sebagai proxy
-        const API = "https://poetic-reverence-production-f21c.up.railway.app/api";
+        const API = "https://belajaryuk-production.up.railway.app/api";
 
         function showLogin() {
             document.getElementById('loginForm').classList.remove('hidden');
@@ -95,7 +93,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error: Pastikan backend berjalan di "https://poetic-reverence-production-f21c.up.railway.app/api" (port 80) melalui proxy Laragon/XAMPP, atau backend Node.js di port 3000 dengan CORS yang benar.');
+                alert('Error: Pastikan backend berjalan di "https://belajaryuk-production.up.railway.app/api" (port 80) melalui proxy Laragon/XAMPP, atau backend Node.js di port 3000 dengan CORS yang benar.');
             }
         }
 
@@ -131,7 +129,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error: Pastikan backend berjalan di "https://poetic-reverence-production-f21c.up.railway.app/api" (port 80) atau backend Node.js di port 3000 dengan CORS yang benar.');
+                alert('Error: Pastikan backend berjalan di "https://belajaryuk-production.up.railway.app/api" (port 80) atau backend Node.js di port 3000 dengan CORS yang benar.');
             }
         }
     </script>

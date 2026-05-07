@@ -54,7 +54,7 @@
     </div>
 
     <script>
-        const API = 'poetic-reverence-production-6f1d.up.railway.app/api';
+        const API = 'https://belajaryuk-production.up.railway.app/api';
 
         async function registerUser() {
             const name = document.getElementById('regName').value.trim();
@@ -96,7 +96,7 @@
                     alert(data.message || 'Registrasi gagal');
                 }
             } catch (err) {
-                alert('Error: Pastikan backend berjalan di poetic-reverence-production-6f1d.up.railway.app/(port 80) dan XAMPP/Node.js aktif.');
+                alert('Error: Pastikan backend berjalan di https://belajaryuk-production.up.railway.app/(port 80) dan XAMPP/Node.js aktif.');
             }
         }
     </script>
