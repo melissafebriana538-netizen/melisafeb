@@ -19,15 +19,22 @@ const io = new Server(server, {
 });
 
 // MIDDLEWARE
-app.use(cors());
+app.use(cors({
+    origin: "https://poetic-reverence-production-6f1d.up.railway.app"
+}));
 app.use(express.static(path.join(__dirname, 'FRONTEND')));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // KONEKSI DATABASE
-mongoose.connect('mongodb://127.0.0.1:27017/db_register')
-  .then(() => console.log('✅ Database terhubung'))
-  .catch(err => console.log('❌ DB Error:', err));
+const dbURI = process.env.MONGODB_URI;
+if (!dbURI) {
+  console.error('❌ MONGODB_URI environment variable not set');
+  process.exit(1);
+}
+mongoose.connect(dbURI)
+.then(() => console.log('✅ Terhubung ke MongoDB Atlas'))
+.catch(err => console.log('❌ DB Error:', err));
 
 // ====================== SCHEMA ======================
 const UserSchema = new mongoose.Schema({
@@ -659,7 +666,7 @@ app.post('/api/profile/avatar', verifyToken, uploadAvatar.single('avatar'), asyn
   const avatarPath = `/uploads/avatars/${req.file.filename}`;
   try {
     await User.findByIdAndUpdate(req.user.userId, { avatar: avatarPath });
-    res.json({ avatarUrl: `http://localhost:3000${avatarPath}` });
+    res.json({ avatarUrl: `https://poetic-reverence-production-6f1d.up.railway.app/${avatarPath}` });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -874,8 +881,7 @@ io.on('connection', (socket) => {
 });
 
 // ====================== START SERVER ======================
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server jalan di http://localhost:${PORT}`);
-  console.log(`📁 Upload folder: ${__dirname}/uploads`);
+  console.log(`🚀 Server jalan di port ${PORT}`);
 });
